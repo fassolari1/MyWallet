@@ -3,6 +3,8 @@ package it.unibg.mywallet.database;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.Collections;
 
 import com.google.common.hash.Hashing;
 
@@ -85,32 +87,48 @@ public class DatabaseManager {
 
 	//METODI
 	
-	public void aggiungiPersona(int id, String nome, String cognome, String cod_fisc, String date) { // da sostituire data con un oggetto di tipo Date
-		String sql = "INSERT INTO PERSONA(ID, nome, cognome, codice_fiscale, data_nascita) VALUES('"+id+"','"+nome+"','"+cognome+"','"+cod_fisc+"','"+date+"')";
+	public void aggiungiPersona(String nome, String cognome, String cod_fisc, String date) { // da sostituire data con un oggetto di tipo Date
 		Statement stmt = null;
+		int new_id;
+		ArrayList<Integer> ids = new ArrayList<Integer>();
+		String sql_select_azienda = "SELECT ID FROM AZIENDA";
+		String sql_select_persona = "SELECT ID FROM PERSONA";
 		try {
 			stmt = this.conn.createStatement();
+			ResultSet rs_azienda = stmt.executeQuery(sql_select_azienda);
+			while (rs_azienda.next()) ids.add(Integer.valueOf(rs_azienda.getInt("ID")));
+			ResultSet rs_persona = stmt.executeQuery(sql_select_persona);
+			while (rs_persona.next()) ids.add(Integer.valueOf(rs_persona.getInt("ID")));
+			new_id = Collections.max(ids).intValue()+1;
+			String sql = "INSERT INTO PERSONA(ID, nome, cognome, codice_fiscale, data_nascita) VALUES('"+new_id+"','"+nome+"','"+cognome+"','"+cod_fisc+"','"+date+"')";
 			stmt.execute(sql);
-			System.out.println("Persona aggiunta");
+			System.out.println("Persona aggiunta, id: "+new_id);
 		}catch(Exception e) {
 			System.err.println( e.getClass().getName() + ": " + e.getMessage() );
 			System.exit(0);
 		}
 	}
 	
-	public int aggiungiAzienda(String ragione_sociale, String p_iva) {
-		int id = getID();
-		String sql = "INSERT INTO AZIENDA(ID, ragione_sociale, partita_iva) VALUES('"+ id +"','" + ragione_sociale + "','" + p_iva + "')";
+	public void aggiungiAzienda(String ragione_sociale, String p_iva) {
+		int new_id;
+		ArrayList<Integer> ids = new ArrayList<Integer>();
+		String sql_select_azienda = "SELECT ID FROM AZIENDA";
+		String sql_select_persona = "SELECT ID FROM PERSONA";
 		Statement stmt = null;
 		try {
 			stmt = this.conn.createStatement();
+			ResultSet rs_azienda = stmt.executeQuery(sql_select_azienda);
+			while (rs_azienda.next()) ids.add(Integer.valueOf(rs_azienda.getInt("ID")));
+			ResultSet rs_persona = stmt.executeQuery(sql_select_persona);
+			while (rs_persona.next()) ids.add(Integer.valueOf(rs_persona.getInt("ID")));
+			new_id = Collections.max(ids).intValue()+1;
+			String sql = "INSERT INTO AZIENDA(ID, ragione_sociale, partita_iva) VALUES('"+new_id+"','"+ragione_sociale+"','"+p_iva+"')";
 			stmt.execute(sql);
-			System.out.println("Azienda aggiunta");
+			System.out.println("Azienda aggiunta, id: "+new_id);
 		}catch(Exception e) {
 			System.err.println( e.getClass().getName() + ": " + e.getMessage() );
 			System.exit(0);
 		}
-		return id;
 	}
 	
 	public void aggiungiCredenziali(int id_utente, String password) { // da sostituire poi "int id_utente" con "Utente u"
