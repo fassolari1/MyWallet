@@ -5,9 +5,13 @@ import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Set;
 
+import com.google.common.collect.Sets;
 import com.google.common.hash.Hashing;
 
+import it.unibg.mywallet.model.Transazione;
+import it.unibg.mywallet.model.Utente;
 import lombok.Getter;
 
 
@@ -18,8 +22,8 @@ Gli attributi delle tabelle sono:
 PERSONA(ID int NOT NULL PRIMARY KEY, nome VARCHAR(30), cognome VARCHAR(30), codice_fiscale VARCHAR(16), data_nascita DATE, bilancio int)
 AZIENDA(ID int NOT NULL PRIMARY KEY, ragione_sociale VARCHAR(30), partita_iva(11), bilancio int)
 CREDENZIALE(ID_utente int NOT NULL PRIMARY KEY, password VARCHAR(256))
-PAGAMENTO(ID_utente int NOT NULL PRIMARY KEY, data_contabilizzazione DATE)
-PRESTITO(ID_utente int NOT NULL PRIMARY KEY, data_ultima_scadenza DATE)
+PAGAMENTO(ID PRIMARY KEY, ID_utente int NOT NULL, ammontare DOUBLE, data_contabilizzazione DATE)
+PRESTITO(ID PRIMARY KEY, ID_utente int NOT NULL , ammontare DOUBLE, data_contabilizzazione DATE, data_ultima_scadenza DATE)
 CASHBACK(ID_utente int NOT NULL PRIMARY KEY, percentuale int)
 RISPARMIO(ID_utente int NOT NULL PRIMARY KEY, totale int)
 */
@@ -52,8 +56,8 @@ public class DatabaseManager {
 				String create_persona = "CREATE TABLE PERSONA(ID int NOT NULL PRIMARY KEY, nome VARCHAR(30), cognome VARCHAR(30), codice_fiscale VARCHAR(16), data_nascita DATE, bilancio int)";
 				String create_azienda = "CREATE TABLE AZIENDA(ID int NOT NULL PRIMARY KEY, ragione_sociale VARCHAR(30), partita_iva VARCHAR(11), bilancio int)";
 				String create_credenziali = "CREATE TABLE CREDENZIALE(ID_utente int NOT NULL PRIMARY KEY, password VARCHAR(256))";
-				String create_pagamento = "CREATE TABLE PAGAMENTO(ID_utente int NOT NULL PRIMARY KEY, data_contabilizzazione DATE)";
-				String create_prestito = "CREATE TABLE PRESTITO(ID_utente int NOT NULL PRIMARY KEY, data_ultima_scadenza DATE)";
+				String create_pagamento = "CREATE TABLE PAGAMENTO(ID PRIMARY KEY, ID_utente int NOT NULL, ammontare DOUBLE, data_contabilizzazione DATE)";
+				String create_prestito = "CREATE TABLE PRESTITO(ID PRIMARY KEY, ID_utente int NOT NULL , ammontare DOUBLE, data DATE, data_ultima_scadenza DATE)";
 				String create_cashback = "CREATE TABLE CASHBACK(ID_utente int NOT NULL PRIMARY KEY, percentuale int)";
 				String create_risparmio = "CREATE TABLE RISPARMIO(ID_utente int NOT NULL PRIMARY KEY, totale int)";
 				stmt.execute(create_persona);
@@ -99,7 +103,11 @@ public class DatabaseManager {
 			while (rs_azienda.next()) ids.add(Integer.valueOf(rs_azienda.getInt("ID")));
 			ResultSet rs_persona = stmt.executeQuery(sql_select_persona);
 			while (rs_persona.next()) ids.add(Integer.valueOf(rs_persona.getInt("ID")));
+			if(ids.isEmpty()) {
+				new_id = 0;
+			}else {
 			new_id = Collections.max(ids).intValue()+1;
+			}
 			String sql = "INSERT INTO PERSONA(ID, nome, cognome, codice_fiscale, data_nascita) VALUES('"+new_id+"','"+nome+"','"+cognome+"','"+cod_fisc+"','"+date+"')";
 			stmt.execute(sql);
 			System.out.println("Persona aggiunta, id: "+new_id);
@@ -109,11 +117,12 @@ public class DatabaseManager {
 		}
 	}
 	
-	public void aggiungiAzienda(String ragione_sociale, String p_iva) {
+	public int aggiungiAzienda(String ragione_sociale, String p_iva) {
 		int new_id;
 		ArrayList<Integer> ids = new ArrayList<Integer>();
 		String sql_select_azienda = "SELECT ID FROM AZIENDA";
 		String sql_select_persona = "SELECT ID FROM PERSONA";
+		
 		Statement stmt = null;
 		try {
 			stmt = this.conn.createStatement();
@@ -121,13 +130,19 @@ public class DatabaseManager {
 			while (rs_azienda.next()) ids.add(Integer.valueOf(rs_azienda.getInt("ID")));
 			ResultSet rs_persona = stmt.executeQuery(sql_select_persona);
 			while (rs_persona.next()) ids.add(Integer.valueOf(rs_persona.getInt("ID")));
+			if(ids.isEmpty()) {
+				new_id = 0;
+			}else {
 			new_id = Collections.max(ids).intValue()+1;
+			}
 			String sql = "INSERT INTO AZIENDA(ID, ragione_sociale, partita_iva) VALUES('"+new_id+"','"+ragione_sociale+"','"+p_iva+"')";
 			stmt.execute(sql);
 			System.out.println("Azienda aggiunta, id: "+new_id);
+			return new_id;
 		}catch(Exception e) {
 			System.err.println( e.getClass().getName() + ": " + e.getMessage() );
 			System.exit(0);
+			return 0;
 		}
 	}
 	
@@ -145,17 +160,18 @@ public class DatabaseManager {
 		}
 	}
 	
-	public void aggiungiPagamanto(int id_utente, String data_contabilizzazione) {	//da sostituire poi "int id_utente" con "Utente u" // da sostituire data con un oggetto di tipo Date
-		String sql = "INSERT INTO PAGAMENTO(ID_utente, data_contabilizzazione) VALUES('"+id_utente+"','"+data_contabilizzazione+"')";
-		Statement stmt = null;
-		try {
-			stmt = this.conn.createStatement();
-			stmt.execute(sql);
-			System.out.println("Pagamento aggiunto");
-		}catch(Exception e) {
-			System.err.println( e.getClass().getName() + ": " + e.getMessage() );
-			System.exit(0);
+	public void aggiungiPagamento(int id, double amount, Date date) {
+		
+		try(PreparedStatement insertPayment = this.conn.prepareStatement("INSERT INTO PAGAMENTO(ID_utente, ammontare, data) VALUES(?,?,?)")) {
+			insertPayment.setInt(1, id);
+			insertPayment.setDouble(2, amount);
+			insertPayment.setDate(3, date);
+			insertPayment.executeUpdate();
+		} catch (SQLException ex) {
+			System.err.println("Transazione fallita per l'utente con ID: " + id);
+			ex.printStackTrace();
 		}
+
 	}
 	
 	public void aggiungiPrestito(int id_utente, Date data_ultima_scadenza) { //da sostituire poi "int id_utente" con "Utente u" // da sostituire data con un oggetto di tipo Date
@@ -262,6 +278,32 @@ public class DatabaseManager {
 		} catch (SQLException ex) {
 			System.err.println("Autenticazione fallita per l'utente: " + name);
 			return false;
+		}
+	}
+
+
+	public Transazione[] getRecentTransaction(Utente utente) {
+		String query = "SELECT * FROM PAGAMENTO WHERE ID_Utente = ?"
+				+    "UNION"
+				+    "SELECT * FROM PRESTITO WHERE ID_Utente = ?"
+				+    "ORDER BY data_contabilizzazione"
+				+    "LIMIT 10";
+				
+		try(PreparedStatement queryTransaction = this.conn.prepareStatement(query)) {
+			queryTransaction.setInt(1, utente.getId());
+			queryTransaction.setInt(2, utente.getId());
+			ResultSet resultSet = queryTransaction.executeQuery();
+			
+			Set<Transazione> transactions = Sets.newHashSet();
+			while(resultSet.next()) {
+				//transactions.add(new Transazione())
+			}
+			
+			
+			return (Transazione[]) transactions.toArray();
+		} catch (SQLException ex) {
+			System.err.println("Autenticazione fallita per l'utente: " + utente);
+			return null;
 		}
 	}
 }
