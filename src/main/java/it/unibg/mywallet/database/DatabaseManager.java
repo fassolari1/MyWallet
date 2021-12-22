@@ -1,6 +1,12 @@
 package it.unibg.mywallet.database;
+
 import java.io.File;
+import java.nio.charset.StandardCharsets;
 import java.sql.*;
+
+import com.google.common.hash.Hashing;
+
+import lombok.Getter;
 
 
 /*Alla creazione di un'instanza dell'oggetto, verrà creata una connessione ad database col nome che viene passato come attirbuto. Se il database con quel nome esiste
@@ -9,13 +15,17 @@ Alla creazione di un database venegono automaticamente create le tabelle PERSONA
 Gli attributi delle tabelle sono:
 PERSONA(ID int NOT NULL PRIMARY KEY, nome VARCHAR(30), cognome VARCHAR(30), codice_fiscale VARCHAR(16), data_nascita DATE, bilancio int)
 AZIENDA(ID int NOT NULL PRIMARY KEY, ragione_sociale VARCHAR(30), partita_iva(11), bilancio int)
-CREDENZIALE(ID_utente int NOT NULL PRIMARY KEY, password VARCHAR(30))
+CREDENZIALE(ID_utente int NOT NULL PRIMARY KEY, password VARCHAR(256))
 PAGAMENTO(ID_utente int NOT NULL PRIMARY KEY, data_contabilizzazione DATE)
 PRESTITO(ID_utente int NOT NULL PRIMARY KEY, data_ultima_scadenza DATE)
 CASHBACK(ID_utente int NOT NULL PRIMARY KEY, percentuale int)
 RISPARMIO(ID_utente int NOT NULL PRIMARY KEY, totale int)
 */
 public class DatabaseManager {
+
+	@Getter
+	private static DatabaseManager instance = new DatabaseManager("myWalletDB", "");
+	
 	//ATTRIBUTI 
 	private static int static_ID=0;
 	private int ID;
@@ -24,7 +34,7 @@ public class DatabaseManager {
 	private String database_path;
 	
 	//COSTRUTTORE
-	public DatabaseManager(String nome, String path) {
+	private DatabaseManager(String nome, String path) {
 		this.ID = this.setID();
 		this.nome_database=this.setNome(nome);
 		this.database_path = this.setPath(path);
@@ -39,7 +49,7 @@ public class DatabaseManager {
 				Statement stmt = this.conn.createStatement();
 				String create_persona = "CREATE TABLE PERSONA(ID int NOT NULL PRIMARY KEY, nome VARCHAR(30), cognome VARCHAR(30), codice_fiscale VARCHAR(16), data_nascita DATE, bilancio int)";
 				String create_azienda = "CREATE TABLE AZIENDA(ID int NOT NULL PRIMARY KEY, ragione_sociale VARCHAR(30), partita_iva VARCHAR(11), bilancio int)";
-				String create_credenziali = "CREATE TABLE CREDENZIALE(ID_utente int NOT NULL PRIMARY KEY, password VARCHAR(30))";
+				String create_credenziali = "CREATE TABLE CREDENZIALE(ID_utente int NOT NULL PRIMARY KEY, password VARCHAR(256))";
 				String create_pagamento = "CREATE TABLE PAGAMENTO(ID_utente int NOT NULL PRIMARY KEY, data_contabilizzazione DATE)";
 				String create_prestito = "CREATE TABLE PRESTITO(ID_utente int NOT NULL PRIMARY KEY, data_ultima_scadenza DATE)";
 				String create_cashback = "CREATE TABLE CASHBACK(ID_utente int NOT NULL PRIMARY KEY, percentuale int)";
@@ -62,6 +72,7 @@ public class DatabaseManager {
 			}else {
 				Class.forName("org.sqlite.JDBC");
 				this.conn = DriverManager.getConnection("jdbc:sqlite:"+this.database_path+this.nome_database+".db");
+				System.out.println("conn" + this.conn);
 				System.out.println("Connessione al database avvenuta con successo...");
 				System.out.println("database già esistente");
 			}
@@ -87,8 +98,9 @@ public class DatabaseManager {
 		}
 	}
 	
-	public void aggiungiAzienda(int id, String ragione_sociale, String p_iva) {
-		String sql = "INSERT INTO AZIENDA(ID, ragione_sociale, partita_iva) VALUES('"+id+"','"+ragione_sociale+"','"+p_iva+"')";
+	public int aggiungiAzienda(String ragione_sociale, String p_iva) {
+		int id = getID();
+		String sql = "INSERT INTO AZIENDA(ID, ragione_sociale, partita_iva) VALUES('"+ id +"','" + ragione_sociale + "','" + p_iva + "')";
 		Statement stmt = null;
 		try {
 			stmt = this.conn.createStatement();
@@ -98,10 +110,12 @@ public class DatabaseManager {
 			System.err.println( e.getClass().getName() + ": " + e.getMessage() );
 			System.exit(0);
 		}
+		return id;
 	}
 	
 	public void aggiungiCredenziali(int id_utente, String password) { // da sostituire poi "int id_utente" con "Utente u"
-		String sql = "INSERT INTO CREDENZIALE(ID_utente, password) VALUES('"+id_utente+"','"+password+"')";
+		String passHash = Hashing.sha256().hashString(password, StandardCharsets.UTF_8).toString();
+		String sql = "INSERT INTO CREDENZIALE(ID_utente, password) VALUES('"+id_utente+"','"+passHash+"')";
 		Statement stmt = null;
 		try {
 			stmt = this.conn.createStatement();
@@ -162,5 +176,74 @@ public class DatabaseManager {
 	
 	public int getID() {
 		return this.ID;
+	}
+
+
+	/**
+	 * returns the password hash associated with a person username.
+	 * @param nome the username.
+	 * @return the password hash.
+	 */
+	public String getPasswordPerson(String nome) {
+		try(PreparedStatement queryPass = this.conn.prepareStatement("SELECT password FROM CREDENZIALE as C JOIN PERSONA as P on P.ID = C.ID_utente WHERE nome = ?")) {
+			queryPass.setString(1, nome);
+			ResultSet resultSet = queryPass.executeQuery();
+			return resultSet.getString(1);
+		} catch (SQLException ex) {
+			System.err.println("Autenticazione fallita per l'utente: " + nome);
+			return "";
+		}
+	}
+	
+	/**
+	 * returns the password hash associated with an agency username.
+	 * @param nome the username.
+	 * @return the password hash.
+	 */
+	public String getPasswordAgency(String nome) {
+		try(PreparedStatement queryPass = this.conn.prepareStatement("SELECT password FROM CREDENZIALE as C JOIN AZIENDA as A on A.ID = C.ID_utente WHERE ragione_sociale = ?")) {
+			queryPass.setString(1, nome);
+			ResultSet resultSet = queryPass.executeQuery();
+			return resultSet.getString(1);
+		} catch (SQLException ex) {
+			System.err.println("Autenticazione fallita per l'utente: " + nome);
+			return "";
+		}
+	}
+	
+	/**
+	 * returns true if there is a person associated with the given username.
+	 * @param name the username.
+	 * @return true or false.
+	 */
+	public boolean isPerson(String name) {
+		try(PreparedStatement queryUser = this.conn.prepareStatement("SELECT EXISTS(SELECT * FROM PERSONA WHERE nome = ?)")) {
+			queryUser.setString(1, name);
+			ResultSet resultSet = queryUser.executeQuery();
+			return resultSet.getBoolean(1);
+		} catch (SQLException ex) {
+			System.err.println("Autenticazione fallita per l'utente: " + name);
+			return false;
+		}
+	}
+	
+	/**
+	 * returns true if there is an ageny associated with the given username.
+	 * @param name the username.
+	 * @return true or false.
+	 */
+	public boolean isAgency(String name) {
+		//Use try with resource to release the connection after query to avoid memory leak
+		try(PreparedStatement queryUser = this.conn.prepareStatement("SELECT EXISTS(SELECT * FROM AZIENDA WHERE ragione_sociale = ?)")) {
+			//assign to placeholder with index 1 value the name
+			queryUser.setString(1, name);
+			//get ResultSet from our query
+			ResultSet resultSet = queryUser.executeQuery();
+			//return result with index 1
+			return resultSet.getBoolean(1);
+		} catch (SQLException ex) {
+			System.err.println("Autenticazione fallita per l'utente: " + name);
+			return false;
+		}
 	}
 }
