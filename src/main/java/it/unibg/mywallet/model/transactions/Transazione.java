@@ -4,6 +4,9 @@ import java.util.Date;
 
 import lombok.AllArgsConstructor;
 
+/**
+ * abstract class Transazione that implements the compareTo method to compare the Transazione ammont 
+ */
 
 @AllArgsConstructor
 public abstract class Transazione implements Comparable<Transazione> {

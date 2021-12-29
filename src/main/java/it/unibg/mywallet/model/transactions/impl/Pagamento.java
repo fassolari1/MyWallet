@@ -7,6 +7,9 @@ import java.util.Date;
 
 import it.unibg.mywallet.model.transactions.Transazione;
 
+/**
+ * Pagamento is a class that extend Transazione 
+ */
 public class Pagamento extends Transazione {
 	
 	public Pagamento(ResultSet payments) throws SQLException {
