@@ -4,6 +4,10 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 
+/**
+ * Utente is a user can send money to the other users with an 'id' that identifies like a primary key
+ * also it can send a Risparmio to the its account's balance
+ */
 @Getter
 @AllArgsConstructor
 public abstract class Utente {
