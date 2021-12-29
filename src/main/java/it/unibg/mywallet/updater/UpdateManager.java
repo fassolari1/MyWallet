@@ -12,6 +12,13 @@ import it.unibg.mywallet.model.user.impl.Azienda;
 import it.unibg.mywallet.model.user.impl.Persona;
 import lombok.Getter;
 
+/**
+ * UpdateManager is used for refersh the application interface and upgrade the data
+ * @Getter of all the attributes
+ * @running can stop the while circle
+ *
+ */
+
 public class UpdateManager implements Runnable {
 	
 	private final Vector<String> columnsIdentifier =  new Vector<String>();
