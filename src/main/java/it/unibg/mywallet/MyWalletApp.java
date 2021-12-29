@@ -173,19 +173,19 @@ public class MyWalletApp {
 			public void actionPerformed(ActionEvent e) {
 				
 				
-				switch(AuthManager.getInstance().login(usernameField.getText(), String.valueOf(passwordField.getPassword()))) {
+				switch(AuthManager.getInstance().login(Integer.parseInt(usernameField.getText()), String.valueOf(passwordField.getPassword()))) {
 				
 				case PRIVATO:
 					loginPanel.setEnabled(false);
 					loginPanel.setVisible(false);
 					hideAllExcept(sideBoard,homePanel);
-					updateManager = new UpdateManager(db.getPerson(usernameField.getText()), utente, balance, savings, (DefaultTableModel)transactionTable.getModel());
+					updateManager = new UpdateManager(db.getPerson(Integer.parseInt(usernameField.getText())), utente, balance, savings, (DefaultTableModel)transactionTable.getModel());
 					break;
 				case AZIENDA:
 					loginPanel.setEnabled(false);
 					loginPanel.setVisible(false);
 					hideAllExcept(sideBoard,homePanel);
-					updateManager = new UpdateManager(db.getAzienda(usernameField.getText()), utente, balance, savings, (DefaultTableModel)transactionTable.getModel());
+					updateManager = new UpdateManager(db.getAzienda(Integer.parseInt(usernameField.getText())), utente, balance, savings, (DefaultTableModel)transactionTable.getModel());
 					break;
 				default:
 				    JOptionPane.showMessageDialog(frmMywallet, "Utente o password errati!", "Login error",JOptionPane.ERROR_MESSAGE);
@@ -221,7 +221,7 @@ public class MyWalletApp {
 				db.aggiungiCredenziali(
 						db.aggiungiAzienda(textNomeAzienda.getText(), textPartitaIVA.getText()),
 						String.valueOf(passAzienda.getPassword()));
-				updateManager = new UpdateManager(db.getAzienda(textNomeAzienda.getText()), utente, balance, savings, (DefaultTableModel)transactionTable.getModel());
+				updateManager = new UpdateManager(db.getAzienda(Integer.parseInt(textNomeAzienda.getText())), utente, balance, savings, (DefaultTableModel)transactionTable.getModel());
 			}
 		});
 		
@@ -235,7 +235,7 @@ public class MyWalletApp {
 							String.valueOf(passPrivato.getPassword()));
 					
 
-					updateManager = new UpdateManager(db.getPerson(textNomePrivato.getText()), utente, balance, savings, (DefaultTableModel)transactionTable.getModel());
+					updateManager = new UpdateManager(db.getPerson(Integer.parseInt(textNomePrivato.getText())), utente, balance, savings, (DefaultTableModel)transactionTable.getModel());
 				} catch (ParseException ex) {
 					// TODO Auto-generated catch block
 				    JOptionPane.showMessageDialog(frmMywallet, "La data di nascita inserita non è nel formato corretto!", "Registration error",JOptionPane.ERROR_MESSAGE);

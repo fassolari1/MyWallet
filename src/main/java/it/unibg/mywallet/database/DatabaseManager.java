@@ -85,7 +85,7 @@ public class DatabaseManager {
 		Statement stmt = null;
 		int new_id;
 		ArrayList<Integer> ids = new ArrayList<Integer>();
-		try(PreparedStatement insertPerson = conn.prepareStatement("INSERT INTO PERSONA(ID, nome, cognome, codice_fiscale, data_nascita) VALUES(?,?,?,?,?)")) {
+		try(PreparedStatement insertPerson = conn.prepareStatement("INSERT INTO PERSONA(ID, nome, cognome, codice_fiscale, data_nascita, bilancio) VALUES(?,?,?,?,?,?)")) {
 			stmt = this.conn.createStatement();
 			ResultSet rs_azienda = stmt.executeQuery("SELECT ID FROM AZIENDA");
 			while (rs_azienda.next()) ids.add(Integer.valueOf(rs_azienda.getInt("ID")));
@@ -101,6 +101,7 @@ public class DatabaseManager {
 			insertPerson.setString(3, cognome);
 			insertPerson.setString(4, cod_fisc);
 			insertPerson.setDate(5, new java.sql.Date(date.getTime()));
+			insertPerson.setInt(6, 0);
 			
 			insertPerson.executeUpdate();
 			
@@ -131,7 +132,7 @@ public class DatabaseManager {
 			}else {
 			new_id = Collections.max(ids).intValue()+1;
 			}
-			String sql = "INSERT INTO AZIENDA(ID, ragione_sociale, partita_iva) VALUES('"+new_id+"','"+ragione_sociale+"','"+p_iva+"')";
+			String sql = "INSERT INTO AZIENDA(ID, ragione_sociale, partita_iva, bilancio) VALUES('"+new_id+"','"+ragione_sociale+"','"+p_iva+"',0)";
 			stmt.execute(sql);
 			System.out.println("Azienda aggiunta, id: "+new_id);
 			return new_id;
@@ -164,6 +165,8 @@ public class DatabaseManager {
 		String sql_select_pagamento = "SELECT ID FROM PAGAMENTO";
 		String sql_select_prestito = "SELECT ID FROM PRESTITO";
 		String sql_update_bilancio = null;
+		if(this.isPerson(id)) sql_update_bilancio = "UPDATE PERSONA SET bilancio = bilancio-"+amount+" WHERE ID = "+id+"";
+		if(this.isAgency(id)) sql_update_bilancio = "UPDATE AZIENDA SET bilancio = bilancio-"+amount+" WHERE ID = "+id+"";
 
 		Statement stmt = null;
 		
@@ -185,6 +188,7 @@ public class DatabaseManager {
 			insertPayment.setDouble(3, amount);
 			insertPayment.setDate(4, date);
 			insertPayment.executeUpdate();
+			insertPayment.executeUpdate(sql_update_bilancio);
 		} catch (SQLException ex) {
 			System.err.println("Transazione fallita per l'utente con ID: " + id);
 			ex.printStackTrace();
@@ -216,13 +220,13 @@ public class DatabaseManager {
 
 	
 	/**
-	 * returns the Persona object associated with the given name.
-	 * @param nome the given name.
+	 * returns the Persona object associated with the given id.
+	 * @param nome the given id.
 	 * @return {@link Persona}
 	 */
-	public Persona getPerson(String nome) {
-		try(PreparedStatement queryPerson = this.conn.prepareStatement("SELECT * FROM PERSONA WHERE nome = ?")) {
-			queryPerson.setString(1, nome);
+	public Persona getPerson(int id) {
+		try(PreparedStatement queryPerson = this.conn.prepareStatement("SELECT * FROM PERSONA WHERE ID = ?")) {
+			queryPerson.setInt(1, id);
 			ResultSet resultSet = queryPerson.executeQuery();
 			return new Persona(resultSet);
 		} catch (SQLException ex) {
@@ -232,13 +236,13 @@ public class DatabaseManager {
 	}
 	
 	/**
-	 * returns the Azienda object associated with the given name.
-	 * @param nome the given name.
+	 * returns the Azienda object associated with the given id.
+	 * @param nome the given id.
 	 * @return {@link Azienda}
 	 */
-	public Azienda getAzienda(String nome) {
-		try(PreparedStatement queryAzienda = this.conn.prepareStatement("SELECT * FROM AZIENDA WHERE ragione_sociale = ?")) {
-			queryAzienda.setString(1, nome);
+	public Azienda getAzienda(int id) {
+		try(PreparedStatement queryAzienda = this.conn.prepareStatement("SELECT * FROM AZIENDA WHERE ID = ?")) {
+			queryAzienda.setInt(1, id);
 			ResultSet resultSet = queryAzienda.executeQuery();
 			return new Azienda(resultSet);
 		} catch (SQLException ex) {
@@ -252,13 +256,13 @@ public class DatabaseManager {
 	 * @param nome the username.
 	 * @return the password hash.
 	 */
-	public String getPasswordPerson(String nome) {
-		try(PreparedStatement queryPass = this.conn.prepareStatement("SELECT password FROM CREDENZIALE as C JOIN PERSONA as P on P.ID = C.ID_utente WHERE nome = ?")) {
-			queryPass.setString(1, nome);
+	public String getPasswordPerson(int id) {
+		try(PreparedStatement queryPass = this.conn.prepareStatement("SELECT password FROM CREDENZIALE as C JOIN PERSONA as P on P.ID = C.ID_utente WHERE ID = ?")) {
+			queryPass.setInt(1, id);
 			ResultSet resultSet = queryPass.executeQuery();
 			return resultSet.getString(1);
 		} catch (SQLException ex) {
-			System.err.println("Autenticazione fallita per l'utente: " + nome);
+			System.err.println("Autenticazione fallita per l'utente: " + id);
 			return "";
 		}
 	}
@@ -268,13 +272,13 @@ public class DatabaseManager {
 	 * @param nome the username.
 	 * @return the password hash.
 	 */
-	public String getPasswordAgency(String nome) {
-		try(PreparedStatement queryPass = this.conn.prepareStatement("SELECT password FROM CREDENZIALE as C JOIN AZIENDA as A on A.ID = C.ID_utente WHERE ragione_sociale = ?")) {
-			queryPass.setString(1, nome);
+	public String getPasswordAgency(int id) {
+		try(PreparedStatement queryPass = this.conn.prepareStatement("SELECT password FROM CREDENZIALE as C JOIN AZIENDA as A on A.ID = C.ID_utente WHERE ID = ?")) {
+			queryPass.setInt(1, id);
 			ResultSet resultSet = queryPass.executeQuery();
 			return resultSet.getString(1);
 		} catch (SQLException ex) {
-			System.err.println("Autenticazione fallita per l'utente: " + nome);
+			System.err.println("Autenticazione fallita per l'utente: " + id);
 			return "";
 		}
 	}

@@ -21,18 +21,18 @@ public class AuthManager {
 	 * @param password the given password.
 	 * @return {@link AuthResult}
 	 */
-	public AuthResult login(String userName, String password) {
+	public AuthResult login(int userId, String password) {
 		String hash = Hashing.sha256().hashString(password, StandardCharsets.UTF_8).toString();
-		if(DatabaseManager.getInstance().isAgency(userName)) {
-			if(DatabaseManager.getInstance().getPasswordAgency(userName).equals(hash)) {
+		if(DatabaseManager.getInstance().isAgency(userId)) {
+			if(DatabaseManager.getInstance().getPasswordAgency(userId).equals(hash)) {
 				return AuthResult.AZIENDA;
 				
 			}else {
 				return AuthResult.DATI_INVALIDI;
 			}
 		}
-		if(DatabaseManager.getInstance().isPerson(userName)) {
-			if (DatabaseManager.getInstance().getPasswordPerson(userName).equals(hash)) {
+		if(DatabaseManager.getInstance().isPerson(userId)) {
+			if (DatabaseManager.getInstance().getPasswordPerson(userId).equals(hash)) {
 				return AuthResult.PRIVATO;
 			}else {
 				return AuthResult.DATI_INVALIDI;
