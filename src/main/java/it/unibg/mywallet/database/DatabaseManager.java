@@ -168,17 +168,18 @@ public class DatabaseManager {
 
 		int new_id;
 		ArrayList<Integer> ids = new ArrayList<Integer>();
-		String sql_select_azienda = "SELECT ID FROM PAGAMENTO";
-		String sql_select_persona = "SELECT ID FROM PRESTITO";
+		String sql_select_pagamento = "SELECT ID FROM PAGAMENTO";
+		String sql_select_prestito = "SELECT ID FROM PRESTITO";
+		String sql_update_bilancio = null;
 
 		Statement stmt = null;
 		
 		try(PreparedStatement insertPayment = this.conn.prepareStatement("INSERT INTO PAGAMENTO(ID, ID_utente, ammontare, data_contabilizzazione) VALUES(?,?,?,?)")) {
 			
 			stmt = this.conn.createStatement();
-			ResultSet rs_azienda = stmt.executeQuery(sql_select_azienda);
+			ResultSet rs_azienda = stmt.executeQuery(sql_select_pagamento);
 			while (rs_azienda.next()) ids.add(Integer.valueOf(rs_azienda.getInt("ID")));
-			ResultSet rs_persona = stmt.executeQuery(sql_select_persona);
+			ResultSet rs_persona = stmt.executeQuery(sql_select_prestito);
 			while (rs_persona.next()) ids.add(Integer.valueOf(rs_persona.getInt("ID")));
 			if(ids.isEmpty()) {
 				new_id = 0;
