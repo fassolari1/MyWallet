@@ -12,12 +12,21 @@ public abstract class Utente {
 	protected double bilancio;
 	protected double risparmio;
 	
-	public boolean inviaPagamento(int amount) {
+	public boolean inviaPagamento(double amount) {
 		if(bilancio - amount >= 0) {
 			bilancio -= amount;
 			return true;
 		}
 		return false;	
+	}
+	
+	public boolean inviaRisparmio(double amount) {
+		if(bilancio - amount >= 0) {
+			bilancio -= amount;
+			risparmio += amount;
+			return true;
+		}
+		return false;
 	}
 
 }

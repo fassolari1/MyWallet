@@ -49,18 +49,18 @@ public class UpdateManager implements Runnable {
 		while(running) {
 			if(utente instanceof Persona) {
 				Persona persona = (Persona)utente;
-				nome.setText(persona.getNome());
+				nome.setText(persona.getNome() + " | ID: " + persona.getId());
 			}
 			if(utente instanceof Azienda) {
 				Azienda azienda = (Azienda)utente;
-				nome.setText(azienda.getRagioneSociale());
+				nome.setText(azienda.getRagioneSociale() + " | ID: " + azienda.getId());
 			}
 			bilancio.setText(String.format("%,.2f €", utente.getBilancio()));
 			risparmio.setText(String.format("%,.2f €", utente.getRisparmio()));
 			transazioniRecenti.setDataVector(DatabaseManager.getInstance().getRecentTransaction(utente), columnsIdentifier);
 			try {
-				//Update every 5 s
-				Thread.sleep(5000);
+				//Update every 100 ms
+				Thread.sleep(1000);
 			} catch (InterruptedException ex) {
 				ex.printStackTrace();
 			}

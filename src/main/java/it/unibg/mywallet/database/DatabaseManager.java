@@ -6,17 +6,10 @@ import java.sql.*;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
-import java.util.Set;
 import java.util.Vector;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import com.google.common.hash.Hashing;
 
-import it.unibg.mywallet.model.transactions.Transazione;
-import it.unibg.mywallet.model.transactions.impl.Pagamento;
-import it.unibg.mywallet.model.transactions.impl.Prestito;
 import it.unibg.mywallet.model.user.Utente;
 import it.unibg.mywallet.model.user.impl.Azienda;
 import it.unibg.mywallet.model.user.impl.Persona;

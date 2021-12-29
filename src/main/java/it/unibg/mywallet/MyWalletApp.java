@@ -68,10 +68,12 @@ public class MyWalletApp {
 	private JButton sendBtn;
 	//HomePanel
 	private JPanel homePanel;
+	private JTextField risparmioText;
 	private JLabel savings;
 	private JLabel balance;
 	private JButton btnHome;
 	private JButton btnTransazione;
+	private JButton btnRisparmio;
 	private JTable transactionTable;
 	//SideBoard
 	private JPanel sideBoard;
@@ -128,6 +130,7 @@ public class MyWalletApp {
 		textDataNascita.setText(null);
 		passPrivato.setText(null);
 		//Home
+		risparmioText.setText(null);
 		((DefaultTableModel)transactionTable.getModel()).setRowCount(0);
 	}
 
@@ -161,11 +164,6 @@ public class MyWalletApp {
 				hideAllExcept(loginPanel);
 	    	}
 	    });
-		
-		/*
-		 * 
-		 */
-		
 		
 		/*
 		 * Auth buttons
@@ -247,17 +245,45 @@ public class MyWalletApp {
 		});
 		
 
+		/*
+		 * Transaction buttons
+		 */
+		
 		sendBtn.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				int amount = Integer.valueOf(amountText.getText());
+				double amount = Double.valueOf(amountText.getText().replace(",", "."));
 				if(amount <= 0) {
 				    JOptionPane.showMessageDialog(frmMywallet, "La somma da inviare deve essere maggiore di 0.00 €", "Transaction error",JOptionPane.ERROR_MESSAGE);
 				    return;
 				}
 				
+				double cashback = amount * 0.03; // 3% di cashback
+				
 				db.aggiungiPagamento(Integer.valueOf(receiverText.getText()), amount, new java.sql.Date(Calendar.getInstance().getTime().getTime()));
+				
 				Utente sender = updateManager.getUtente();
-				sender.inviaPagamento(amount);
+				if(!sender.inviaPagamento(amount)) {
+				    JOptionPane.showMessageDialog(frmMywallet, "Saldo insufficiente!", "Transaction error",JOptionPane.ERROR_MESSAGE);
+				    return;
+				}
+			}
+		});
+		
+
+		btnRisparmio.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				double amount = Double.valueOf(risparmioText.getText().replace(",", "."));
+				if(amount <= 0) {
+				    JOptionPane.showMessageDialog(frmMywallet, "La somma da inviare deve essere maggiore di 0.00 €", "Transaction error",JOptionPane.ERROR_MESSAGE);
+				    return;
+				}
+				
+				Utente sender = updateManager.getUtente();
+				if(!sender.inviaRisparmio(amount)) {
+				    JOptionPane.showMessageDialog(frmMywallet, "Saldo insufficiente!", "Transaction error",JOptionPane.ERROR_MESSAGE);
+				    return;
+				}
+				
 			}
 		});
 		
@@ -300,7 +326,7 @@ public class MyWalletApp {
 						
 						utente = new JLabel("Pincopallino");
 						utente.setHorizontalAlignment(SwingConstants.CENTER);
-						utente.setBounds(10, 87, 137, 23);
+						utente.setBounds(12, 86, 137, 23);
 						sideBoard.add(utente);
 						
 						btnTransazione = new JButton("Transazione");
@@ -341,7 +367,7 @@ public class MyWalletApp {
 				JLabel savingsLabel = new JLabel("Totale Risparmi");
 				savingsLabel.setIcon(new ImageIcon(MyWalletApp.class.getResource("/pictures/savings32.png")));
 				savingsLabel.setHorizontalAlignment(SwingConstants.CENTER);
-				savingsLabel.setBounds(376, 35, 156, 32);
+				savingsLabel.setBounds(186, 35, 156, 32);
 				homePanel.add(savingsLabel);
 				
 		JLabel transactionLabel = new JLabel("Transazioni recenti");
@@ -357,7 +383,7 @@ public class MyWalletApp {
 		
 		savings = new JLabel("0.0\u20AC");
 		savings.setHorizontalAlignment(SwingConstants.CENTER);
-		savings.setBounds(386, 78, 77, 32);
+		savings.setBounds(196, 78, 77, 32);
 		homePanel.add(savings);
 		
 		transactionTable = new JTable();
@@ -365,12 +391,14 @@ public class MyWalletApp {
 		transactionTable.setShowGrid(false);
 		transactionTable.setShowHorizontalLines(false);
 		transactionTable.setRowSelectionAllowed(false);
+		transactionTable.getTableHeader().setReorderingAllowed(false);
 		transactionTable.setModel(new DefaultTableModel() {
 			//Non-Editable Jtable
 			@Override
 			   public boolean isCellEditable(int row, int column) {
 		       return false;
 		   }
+			
 			
 		});
 		transactionTable.setBounds(10, 317, 607, 160);
@@ -381,6 +409,24 @@ public class MyWalletApp {
 		scrollPane.setSize(607, 160);
 		scrollPane.setLocation(10, 317);
 		homePanel.add(scrollPane);
+		
+		risparmioText = new JTextField();
+		risparmioText.setHorizontalAlignment(SwingConstants.CENTER);
+		risparmioText.setBounds(432, 84, 86, 20);
+		homePanel.add(risparmioText);
+		risparmioText.setColumns(10);
+		
+		btnRisparmio = new JButton("");
+		btnRisparmio.setBackground(null);
+		btnRisparmio.setBorderPainted(false);
+		btnRisparmio.setIcon(new ImageIcon(MyWalletApp.class.getResource("/pictures/send32.png")));
+		btnRisparmio.setBounds(521, 78, 77, 32);
+		homePanel.add(btnRisparmio);
+		
+		JLabel labelRisparmio = new JLabel("Invia Denaro al Conto Risparmio");
+		labelRisparmio.setIcon(new ImageIcon(MyWalletApp.class.getResource("/pictures/wealth32.png")));
+		labelRisparmio.setBounds(390, 31, 208, 41);
+		homePanel.add(labelRisparmio);
 		
 		transazionePanel = new JPanel();
 		transazionePanel.setBounds(161, 0, 627, 488);
