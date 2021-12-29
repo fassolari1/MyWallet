@@ -13,12 +13,18 @@ import it.unibg.mywallet.model.user.impl.Persona;
 import lombok.Getter;
 
 /**
+<<<<<<< HEAD
  * UpdateManager is used for refersh the application interface and upgrade the data
  * @Getter of all the attributes
  * @running can stop the while circle
  *
  */
 
+=======
+ * Update manager is a class which handles the graphic interface by updating its components
+ *
+ */
+>>>>>>> d620e4503189cb7054887d874a9e81dfe870f1bd
 public class UpdateManager implements Runnable {
 	
 	private final Vector<String> columnsIdentifier =  new Vector<String>();
@@ -47,10 +53,17 @@ public class UpdateManager implements Runnable {
 		exeService.execute(this);
 	}
 	
+	/**
+	 * Stops the thread which updates the graphic
+	 */
 	public void stop() {
 		running = false;
 	}
 	
+	
+	/**
+	 * Update the name,balance,savings and recentTransactions labels.
+	 */
 	@Override
 	public void run() {
 		while(running) {
