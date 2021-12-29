@@ -6,6 +6,10 @@ import java.sql.SQLException;
 import it.unibg.mywallet.model.user.Utente;
 import lombok.Getter;
 
+/**
+ * Azienda is a class that extend Utente
+ * it have two attributes that characterize the class, ragioneSociale and partita IVA
+ */
 @Getter
 public class Azienda extends Utente {
 	

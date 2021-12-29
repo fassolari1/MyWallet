@@ -7,6 +7,11 @@ import java.util.Date;
 import it.unibg.mywallet.model.user.Utente;
 import lombok.Getter;
 
+/**
+ * Azienda is a class that extend Utente
+ * it have many attributes like nome, cognome, codFiscale, dataDiNascita
+ * that characterize the all common user
+ */
 @Getter
 public class Persona extends Utente {
 	
