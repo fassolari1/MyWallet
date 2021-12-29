@@ -3,15 +3,23 @@ package it.unibg.mywallet.database;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Set;
+import java.util.Vector;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.hash.Hashing;
 
-import it.unibg.mywallet.model.Transazione;
-import it.unibg.mywallet.model.Utente;
+import it.unibg.mywallet.model.transactions.Transazione;
+import it.unibg.mywallet.model.transactions.impl.Pagamento;
+import it.unibg.mywallet.model.transactions.impl.Prestito;
+import it.unibg.mywallet.model.user.Utente;
+import it.unibg.mywallet.model.user.impl.Azienda;
+import it.unibg.mywallet.model.user.impl.Persona;
 import lombok.Getter;
 
 
@@ -33,51 +41,40 @@ public class DatabaseManager {
 	private static DatabaseManager instance = new DatabaseManager("myWalletDB", "");
 	
 	//ATTRIBUTI 
-	private static int static_ID=0;
-	private int ID;
 	private Connection conn = null;
-	private String nome_database;
-	private String database_path;
+	private String nomeDatabase;
+	private String databasePath;
 	
 	//COSTRUTTORE
 	private DatabaseManager(String nome, String path) {
-		this.ID = this.setID();
-		this.nome_database=this.setNome(nome);
-		this.database_path = this.setPath(path);
-		try { //connessione
+		this.nomeDatabase = nome;
+		this.databasePath = path;
+		try { 
+			//connessione
 			//Guarda se il database esiste già, in quel caso si limita a creare una connessione, altrimenti crea anche le tabelle
-			File db = new File(this.database_path+nome_database+".db");
+			File db = new File(this.databasePath + nomeDatabase+ ".db");
 			if(!db.exists()) {
 				Class.forName("org.sqlite.JDBC");
-				this.conn = DriverManager.getConnection("jdbc:sqlite:"+this.database_path+this.nome_database+".db");
-				System.out.println("Connessione al database avvenuta con successo...");
+				this.conn = DriverManager.getConnection("jdbc:sqlite:"+this.databasePath+this.nomeDatabase+".db");
 				//creazione tabelle
 				Statement stmt = this.conn.createStatement();
-				String create_persona = "CREATE TABLE PERSONA(ID int NOT NULL PRIMARY KEY, nome VARCHAR(30), cognome VARCHAR(30), codice_fiscale VARCHAR(16), data_nascita DATE, bilancio int)";
-				String create_azienda = "CREATE TABLE AZIENDA(ID int NOT NULL PRIMARY KEY, ragione_sociale VARCHAR(30), partita_iva VARCHAR(11), bilancio int)";
+				String create_persona = "CREATE TABLE PERSONA(ID int NOT NULL PRIMARY KEY, nome VARCHAR(30), cognome VARCHAR(30), codice_fiscale VARCHAR(16), data_nascita DATE, risparmio DOUBLE DEFAULT 0.0, bilancio DOUBLE DEFAULT 0.0)";
+				String create_azienda = "CREATE TABLE AZIENDA(ID int NOT NULL PRIMARY KEY, ragione_sociale VARCHAR(30), partita_iva VARCHAR(11), risparmio DOUBLE DEFAULT 0.0, bilancio DOUBLE DEFAULT 0.0)";
 				String create_credenziali = "CREATE TABLE CREDENZIALE(ID_utente int NOT NULL PRIMARY KEY, password VARCHAR(256))";
-				String create_pagamento = "CREATE TABLE PAGAMENTO(ID PRIMARY KEY, ID_utente int NOT NULL, ammontare DOUBLE, data_contabilizzazione DATE)";
-				String create_prestito = "CREATE TABLE PRESTITO(ID PRIMARY KEY, ID_utente int NOT NULL , ammontare DOUBLE, data DATE, data_ultima_scadenza DATE)";
+				String create_pagamento = "CREATE TABLE PAGAMENTO(ID int PRIMARY KEY, ID_utente int NOT NULL, ammontare DOUBLE, data_contabilizzazione DATE)";
+				String create_prestito = "CREATE TABLE PRESTITO(ID int PRIMARY KEY, ID_utente int NOT NULL, ammontare DOUBLE, data_contabilizzazione DATE, data_ultima_scadenza DATE)";
 				String create_cashback = "CREATE TABLE CASHBACK(ID_utente int NOT NULL PRIMARY KEY, percentuale int)";
 				String create_risparmio = "CREATE TABLE RISPARMIO(ID_utente int NOT NULL PRIMARY KEY, totale int)";
 				stmt.execute(create_persona);
-				System.out.println("Tabella PERSONA creata");
 				stmt.execute(create_azienda);
-				System.out.println("Tabella AZIENDA creata");
 				stmt.execute(create_credenziali);
-				System.out.println("Tabella CREDENZIALE creata");
 				stmt.execute(create_pagamento);
-				System.out.println("Tabella PAGAMENTO creata");
 				stmt.execute(create_prestito);
-				System.out.println("Tabella PRESTITO creata");
 				stmt.execute(create_cashback);
-				System.out.println("Tabella CASHBACK creata");
 				stmt.execute(create_risparmio);
-				System.out.println("Tabella RISPARMIO creata");
-				System.out.println("Tutte le tabelle sono state create");
 			}else {
 				Class.forName("org.sqlite.JDBC");
-				this.conn = DriverManager.getConnection("jdbc:sqlite:"+this.database_path+this.nome_database+".db");
+				this.conn = DriverManager.getConnection("jdbc:sqlite:"+this.databasePath+this.nomeDatabase+".db");
 				System.out.println("conn" + this.conn);
 				System.out.println("Connessione al database avvenuta con successo...");
 				System.out.println("database già esistente");
@@ -91,29 +88,35 @@ public class DatabaseManager {
 
 	//METODI
 	
-	public void aggiungiPersona(String nome, String cognome, String cod_fisc, String date) { // da sostituire data con un oggetto di tipo Date
+	public int aggiungiPersona(String nome, String cognome, String cod_fisc, java.util.Date date) { // da sostituire data con un oggetto di tipo Date
 		Statement stmt = null;
 		int new_id;
 		ArrayList<Integer> ids = new ArrayList<Integer>();
-		String sql_select_azienda = "SELECT ID FROM AZIENDA";
-		String sql_select_persona = "SELECT ID FROM PERSONA";
-		try {
+		try(PreparedStatement insertPerson = conn.prepareStatement("INSERT INTO PERSONA(ID, nome, cognome, codice_fiscale, data_nascita) VALUES(?,?,?,?,?)")) {
 			stmt = this.conn.createStatement();
-			ResultSet rs_azienda = stmt.executeQuery(sql_select_azienda);
+			ResultSet rs_azienda = stmt.executeQuery("SELECT ID FROM AZIENDA");
 			while (rs_azienda.next()) ids.add(Integer.valueOf(rs_azienda.getInt("ID")));
-			ResultSet rs_persona = stmt.executeQuery(sql_select_persona);
+			ResultSet rs_persona = stmt.executeQuery("SELECT ID FROM PERSONA");
 			while (rs_persona.next()) ids.add(Integer.valueOf(rs_persona.getInt("ID")));
 			if(ids.isEmpty()) {
 				new_id = 0;
 			}else {
-			new_id = Collections.max(ids).intValue()+1;
+				new_id = Collections.max(ids).intValue()+1;
 			}
-			String sql = "INSERT INTO PERSONA(ID, nome, cognome, codice_fiscale, data_nascita) VALUES('"+new_id+"','"+nome+"','"+cognome+"','"+cod_fisc+"','"+date+"')";
-			stmt.execute(sql);
+			insertPerson.setInt(1, new_id);
+			insertPerson.setString(2, nome);
+			insertPerson.setString(3, cognome);
+			insertPerson.setString(4, cod_fisc);
+			insertPerson.setDate(5, new java.sql.Date(date.getTime()));
+			
+			insertPerson.executeUpdate();
+			
 			System.out.println("Persona aggiunta, id: "+new_id);
+			return new_id;
 		}catch(Exception e) {
 			System.err.println( e.getClass().getName() + ": " + e.getMessage() );
 			System.exit(0);
+			return 0;
 		}
 	}
 	
@@ -162,10 +165,31 @@ public class DatabaseManager {
 	
 	public void aggiungiPagamento(int id, double amount, Date date) {
 		
-		try(PreparedStatement insertPayment = this.conn.prepareStatement("INSERT INTO PAGAMENTO(ID_utente, ammontare, data) VALUES(?,?,?)")) {
-			insertPayment.setInt(1, id);
-			insertPayment.setDouble(2, amount);
-			insertPayment.setDate(3, date);
+
+		int new_id;
+		ArrayList<Integer> ids = new ArrayList<Integer>();
+		String sql_select_azienda = "SELECT ID FROM PAGAMENTO";
+		String sql_select_persona = "SELECT ID FROM PRESTITO";
+
+		Statement stmt = null;
+		
+		try(PreparedStatement insertPayment = this.conn.prepareStatement("INSERT INTO PAGAMENTO(ID, ID_utente, ammontare, data_contabilizzazione) VALUES(?,?,?,?)")) {
+			
+			stmt = this.conn.createStatement();
+			ResultSet rs_azienda = stmt.executeQuery(sql_select_azienda);
+			while (rs_azienda.next()) ids.add(Integer.valueOf(rs_azienda.getInt("ID")));
+			ResultSet rs_persona = stmt.executeQuery(sql_select_persona);
+			while (rs_persona.next()) ids.add(Integer.valueOf(rs_persona.getInt("ID")));
+			if(ids.isEmpty()) {
+				new_id = 0;
+			}else {
+			new_id = Collections.max(ids).intValue()+1;
+			}
+		
+			insertPayment.setInt(1, new_id);
+			insertPayment.setInt(2, id);
+			insertPayment.setDouble(3, amount);
+			insertPayment.setDate(4, date);
 			insertPayment.executeUpdate();
 		} catch (SQLException ex) {
 			System.err.println("Transazione fallita per l'utente con ID: " + id);
@@ -195,23 +219,39 @@ public class DatabaseManager {
 			System.exit(0);
 		}
 	}
-	
-	private int setID() {
-		return static_ID++;
-	}
-	
-	private String setNome(String nome) {
-		return nome;
-	}
-	
-	private String setPath(String path) {
-		return path;
-	}
-	
-	public int getID() {
-		return this.ID;
-	}
 
+	
+	/**
+	 * returns the Persona object associated with the given name.
+	 * @param nome the given name.
+	 * @return {@link Persona}
+	 */
+	public Persona getPerson(String nome) {
+		try(PreparedStatement queryPerson = this.conn.prepareStatement("SELECT * FROM PERSONA WHERE nome = ?")) {
+			queryPerson.setString(1, nome);
+			ResultSet resultSet = queryPerson.executeQuery();
+			return new Persona(resultSet);
+		} catch (SQLException ex) {
+			ex.printStackTrace();
+			return null;
+		}
+	}
+	
+	/**
+	 * returns the Azienda object associated with the given name.
+	 * @param nome the given name.
+	 * @return {@link Azienda}
+	 */
+	public Azienda getAzienda(String nome) {
+		try(PreparedStatement queryAzienda = this.conn.prepareStatement("SELECT * FROM AZIENDA WHERE ragione_sociale = ?")) {
+			queryAzienda.setString(1, nome);
+			ResultSet resultSet = queryAzienda.executeQuery();
+			return new Azienda(resultSet);
+		} catch (SQLException ex) {
+			ex.printStackTrace();
+			return null;
+		}
+	}
 
 	/**
 	 * returns the password hash associated with a person username.
@@ -282,28 +322,42 @@ public class DatabaseManager {
 	}
 
 
-	public Transazione[] getRecentTransaction(Utente utente) {
-		String query = "SELECT * FROM PAGAMENTO WHERE ID_Utente = ?"
-				+    "UNION"
-				+    "SELECT * FROM PRESTITO WHERE ID_Utente = ?"
-				+    "ORDER BY data_contabilizzazione"
-				+    "LIMIT 10";
-				
-		try(PreparedStatement queryTransaction = this.conn.prepareStatement(query)) {
-			queryTransaction.setInt(1, utente.getId());
-			queryTransaction.setInt(2, utente.getId());
-			ResultSet resultSet = queryTransaction.executeQuery();
+	public Vector<Vector<String>> getRecentTransaction(Utente utente) {
+
+		Vector<Vector<String>> transactions = new Vector<>();
+		Vector<String> transactionData = new Vector<>();
+		
+		SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
+		
+		try(PreparedStatement queryLending = this.conn.prepareStatement("SELECT * FROM PRESTITO WHERE ID_Utente = ? ORDER BY data_contabilizzazione DESC LIMIT 10");
+			PreparedStatement queryPayment = this.conn.prepareStatement("SELECT * FROM PAGAMENTO WHERE ID_Utente = ? ORDER BY data_contabilizzazione DESC LIMIT 10")) {
 			
-			Set<Transazione> transactions = Sets.newHashSet();
-			while(resultSet.next()) {
-				//transactions.add(new Transazione())
+			queryLending.setInt(1, utente.getId());
+			queryPayment.setInt(1, utente.getId());
+			
+			ResultSet payments = queryPayment.executeQuery();
+			ResultSet lendings = queryLending.executeQuery();
+		
+			while(payments.next()) {
+				transactionData.add(String.valueOf(payments.getInt(1)));
+				transactionData.add(String.format("%,.2f €", payments.getDouble(3)));
+				transactionData.add(dateFormat.format(payments.getDate(4)));
+				transactions.add((Vector<String>) transactionData.clone());
+				transactionData.clear();
 			}
 			
+			while(lendings.next()) {
+				transactionData.add(String.valueOf(payments.getInt(1)));
+				transactionData.add(String.format("%,.2f €", payments.getDouble(3)));
+				transactionData.add(dateFormat.format(payments.getDate(4)));
+				transactions.add((Vector<String>) transactionData.clone());
+				transactionData.clear();
+			}
 			
-			return (Transazione[]) transactions.toArray();
+			return transactions;
 		} catch (SQLException ex) {
-			System.err.println("Autenticazione fallita per l'utente: " + utente);
-			return null;
+			ex.printStackTrace();
+			return transactions;
 		}
 	}
 }

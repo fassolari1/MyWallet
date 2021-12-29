@@ -8,6 +8,8 @@ import com.formdev.flatlaf.FlatDarkLaf;
 
 import it.unibg.mywallet.auth.AuthManager;
 import it.unibg.mywallet.database.DatabaseManager;
+import it.unibg.mywallet.model.user.Utente;
+import it.unibg.mywallet.updater.UpdateManager;
 
 import javax.swing.JPanel;
 import javax.swing.JLabel;
@@ -18,59 +20,68 @@ import javax.swing.JTextField;
 import java.awt.Toolkit;
 import java.awt.event.ActionListener;
 import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.HashSet;
 import java.util.Set;
 import java.awt.event.ActionEvent;
 import javax.swing.SwingConstants;
+import javax.swing.table.DefaultTableModel;
 import javax.swing.text.MaskFormatter;
 
 import java.awt.Font;
 import javax.swing.JFormattedTextField;
-import javax.swing.JList;
+import javax.swing.JOptionPane;
+import javax.swing.JTable;
+import javax.swing.JScrollPane;
 
 public class MyWalletApp {
-
+	
+	private UpdateManager updateManager;
+	
 	private Set<JPanel> panels = new HashSet<JPanel>();
 	
 	private JFrame frmMywallet;
-	//Panels
+	//Login
 	private JPanel loginPanel;
-	private JPanel sideBoard;
-	private JPanel homePanel;
-	private JPanel transazionePanel;
-	private JPanel regChoicePanel;
-	private JPanel regFormPrivato;
-	private JPanel regFormAzienda;
-	//Text Fields
 	private JTextField usernameField;
 	private JPasswordField passwordField;
+	private JButton loginButton;
+	//RegFormAzienda
+	private JPanel regFormAzienda;
 	private JTextField textNomeAzienda;
 	private JTextField textPartitaIVA;
 	private JPasswordField passAzienda;
+	private JButton submitRegisterAzienda;
+	//RegFormPrivato
+	private JPanel regFormPrivato;
 	private JTextField textNomePrivato;
 	private JTextField textCognome;
 	private JTextField textCodFiscale;
+	private JTextField textDataNascita;
+	private JPasswordField passPrivato;
+	private JButton submitRegisterPrivato;
+	//TransactionForm
+	private JPanel transazionePanel;
 	private JTextField receiverText;
 	private JTextField amountText;
-	//Buttons
+	private JButton sendBtn;
+	//HomePanel
+	private JPanel homePanel;
+	private JLabel savings;
+	private JLabel balance;
 	private JButton btnHome;
 	private JButton btnTransazione;
-	private JButton sendBtn;
-	private JButton loginButton;
+	private JTable transactionTable;
+	//SideBoard
+	private JPanel sideBoard;
+	private JLabel utente;
+	private JButton logoutButton;
+	//RegChoiceForm
+	private JPanel regChoicePanel;
 	private JButton regButton;
 	private JButton privatoButton;
 	private JButton aziendaButton;
-	private JButton submitRegisterAzienda;
-	private JButton submitRegisterPrivato;
-	private JTextField textDataNascita;
-	//Labels
-	private JLabel savings;
-	private JLabel balance;
-	private JLabel utente;
-	private JLabel passAziendaLabel;
-	//List
-	private JList transactionList;
 
 	/**
 	 * Launch the application.
@@ -100,11 +111,31 @@ public class MyWalletApp {
 		hideAllExcept(loginPanel);
 	}
 
+	private void clearOldData() {
+		updateManager.stop();
+		updateManager = null;
+		//Login
+		usernameField.setText(null);
+		passwordField.setText(null);
+		//Azienda
+		textNomeAzienda.setText(null);
+		textPartitaIVA.setText(null);
+		passAzienda.setText(null);
+		//Privato
+		textNomePrivato.setText(null);
+		textCognome.setText(null);
+		textCodFiscale.setText(null);
+		textDataNascita.setText(null);
+		passPrivato.setText(null);
+		//Home
+		((DefaultTableModel)transactionTable.getModel()).setRowCount(0);
+	}
+
 	/**
 	 * Here we init all our listeners
 	 */
 	private void initListeners() {
-		
+		DatabaseManager db = DatabaseManager.getInstance();
 
 		/*
 		 * SideBoard buttons
@@ -123,6 +154,14 @@ public class MyWalletApp {
 			}
 		});
 		
+
+	    logoutButton.addActionListener(new ActionListener() {
+	    	public void actionPerformed(ActionEvent e) {
+	    		clearOldData();
+				hideAllExcept(loginPanel);
+	    	}
+	    });
+		
 		/*
 		 * 
 		 */
@@ -134,14 +173,25 @@ public class MyWalletApp {
 		
 		loginButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				if(AuthManager.getInstance().login(usernameField.getText(), String.valueOf(passwordField.getPassword()))) {
-					//we good send the user to main dashboard
+				
+				
+				switch(AuthManager.getInstance().login(usernameField.getText(), String.valueOf(passwordField.getPassword()))) {
+				
+				case PRIVATO:
+					loginPanel.setEnabled(false);
+					loginPanel.setVisible(false);
 					hideAllExcept(sideBoard,homePanel);
-					//createUser();
-				}else {
-					//wrong pass/user send popup
+					updateManager = new UpdateManager(db.getPerson(usernameField.getText()), utente, balance, savings, (DefaultTableModel)transactionTable.getModel());
+					break;
+				case AZIENDA:
+					loginPanel.setEnabled(false);
+					loginPanel.setVisible(false);
 					hideAllExcept(sideBoard,homePanel);
-				    //JOptionPane.showMessageDialog(frmMywallet, "Utente o password errati!", "Login error",JOptionPane.ERROR_MESSAGE);
+					updateManager = new UpdateManager(db.getAzienda(usernameField.getText()), utente, balance, savings, (DefaultTableModel)transactionTable.getModel());
+					break;
+				default:
+				    JOptionPane.showMessageDialog(frmMywallet, "Utente o password errati!", "Login error",JOptionPane.ERROR_MESSAGE);
+					break;
 				}
 			}
 		});
@@ -170,8 +220,10 @@ public class MyWalletApp {
 		submitRegisterAzienda.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				hideAllExcept(sideBoard,homePanel);
-				int idAzienda = DatabaseManager.getInstance().aggiungiAzienda(textNomeAzienda.getText(), textPartitaIVA.getText());
-				DatabaseManager.getInstance().aggiungiCredenziali(idAzienda, String.valueOf(passAzienda.getPassword()));
+				db.aggiungiCredenziali(
+						db.aggiungiAzienda(textNomeAzienda.getText(), textPartitaIVA.getText()),
+						String.valueOf(passAzienda.getPassword()));
+				updateManager = new UpdateManager(db.getAzienda(textNomeAzienda.getText()), utente, balance, savings, (DefaultTableModel)transactionTable.getModel());
 			}
 		});
 		
@@ -179,18 +231,33 @@ public class MyWalletApp {
 		submitRegisterPrivato.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				hideAllExcept(sideBoard,homePanel);
+				try {
+					db.aggiungiCredenziali(
+							db.aggiungiPersona(textNomePrivato.getText(), textCognome.getText(), textCodFiscale.getText(), new SimpleDateFormat("dd/MM/yyyy").parse(textDataNascita.getText())),
+							String.valueOf(passPrivato.getPassword()));
+					
+
+					updateManager = new UpdateManager(db.getPerson(textNomePrivato.getText()), utente, balance, savings, (DefaultTableModel)transactionTable.getModel());
+				} catch (ParseException ex) {
+					// TODO Auto-generated catch block
+				    JOptionPane.showMessageDialog(frmMywallet, "La data di nascita inserita non è nel formato corretto!", "Registration error",JOptionPane.ERROR_MESSAGE);
+					ex.printStackTrace();
+				}
 			}
 		});
-		
-		/*
-		 * 
-		 */
 		
 
 		sendBtn.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				DatabaseManager.getInstance().aggiungiPagamento(Integer.valueOf(receiverText.getText()), Integer.valueOf(amountText.getText()), new java.sql.Date(Calendar.getInstance().getTime().getTime()));
+				int amount = Integer.valueOf(amountText.getText());
+				if(amount <= 0) {
+				    JOptionPane.showMessageDialog(frmMywallet, "La somma da inviare deve essere maggiore di 0.00 €", "Transaction error",JOptionPane.ERROR_MESSAGE);
+				    return;
+				}
 				
+				db.aggiungiPagamento(Integer.valueOf(receiverText.getText()), amount, new java.sql.Date(Calendar.getInstance().getTime().getTime()));
+				Utente sender = updateManager.getUtente();
+				sender.inviaPagamento(amount);
 			}
 		});
 		
@@ -217,38 +284,103 @@ public class MyWalletApp {
 		    // TODO Auto-generated catch block
 		    e.printStackTrace();
 		}
+				
+				sideBoard = new JPanel();
+				sideBoard.setBounds(0, 0, 157, 488);
+				sideBoard.setLayout(null);
+				frmMywallet.getContentPane().add(sideBoard);
+				panels.add(sideBoard);
+				
+						JLabel utenteLabel = new JLabel("Utente");
+						utenteLabel.setIcon(new ImageIcon(MyWalletApp.class.getResource("/pictures/user32.png")));
+						utenteLabel.setFont(new Font("Tahoma", Font.PLAIN, 16));
+						utenteLabel.setHorizontalAlignment(SwingConstants.CENTER);
+						utenteLabel.setBounds(20, 22, 107, 66);
+						sideBoard.add(utenteLabel);
+						
+						utente = new JLabel("Pincopallino");
+						utente.setHorizontalAlignment(SwingConstants.CENTER);
+						utente.setBounds(10, 87, 137, 23);
+						sideBoard.add(utente);
+						
+						btnTransazione = new JButton("Transazione");
+						btnTransazione.setBackground(null);
+						btnTransazione.setBorderPainted(false);
+						btnTransazione.setIcon(new ImageIcon(MyWalletApp.class.getResource("/pictures/hand32.png")));
+						btnTransazione.setBounds(0, 203, 157, 58);
+						sideBoard.add(btnTransazione);
+						
+						btnHome = new JButton("DashBoard");
+						btnHome.setBackground(null);
+						btnHome.setBorderPainted(false);
+						btnHome.setIcon(new ImageIcon(MyWalletApp.class.getResource("/pictures/home32.png")));
+						btnHome.setBounds(0, 121, 157, 66);
+						sideBoard.add(btnHome);
+						
+					    logoutButton = new JButton("Logout");
+						logoutButton.setBackground(null);
+						logoutButton.setBorderPainted(false);
+						logoutButton.setIcon(new ImageIcon(MyWalletApp.class.getResource("/pictures/logout32.png")));
+						logoutButton.setBounds(10, 446, 127, 31);
+						sideBoard.add(logoutButton);
 		
-		sideBoard = new JPanel();
-		sideBoard.setBounds(0, 0, 157, 488);
-		sideBoard.setLayout(null);
-		frmMywallet.getContentPane().add(sideBoard);
-		panels.add(sideBoard);
+				
+				
+				homePanel = new JPanel();
+				homePanel.setBounds(161, 0, 627, 488);
+				homePanel.setLayout(null);
+				frmMywallet.getContentPane().add(homePanel);
+				panels.add(homePanel);
+				
+				JLabel balanceLabel = new JLabel("Bilancio");
+				balanceLabel.setIcon(new ImageIcon(MyWalletApp.class.getResource("/pictures/coin32.png")));
+				balanceLabel.setHorizontalAlignment(SwingConstants.CENTER);
+				balanceLabel.setBounds(10, 35, 103, 32);
+				homePanel.add(balanceLabel);
+				
+				JLabel savingsLabel = new JLabel("Totale Risparmi");
+				savingsLabel.setIcon(new ImageIcon(MyWalletApp.class.getResource("/pictures/savings32.png")));
+				savingsLabel.setHorizontalAlignment(SwingConstants.CENTER);
+				savingsLabel.setBounds(376, 35, 156, 32);
+				homePanel.add(savingsLabel);
+				
+		JLabel transactionLabel = new JLabel("Transazioni recenti");
+		transactionLabel.setIcon(new ImageIcon(MyWalletApp.class.getResource("/pictures/clock32.png")));
+		transactionLabel.setHorizontalAlignment(SwingConstants.CENTER);
+		transactionLabel.setBounds(10, 274, 192, 32);
+		homePanel.add(transactionLabel);
 		
-				JLabel utenteLabel = new JLabel("Utente");
-				utenteLabel.setIcon(new ImageIcon(MyWalletApp.class.getResource("/pictures/user32.png")));
-				utenteLabel.setFont(new Font("Tahoma", Font.PLAIN, 16));
-				utenteLabel.setHorizontalAlignment(SwingConstants.CENTER);
-				utenteLabel.setBounds(20, 22, 107, 66);
-				sideBoard.add(utenteLabel);
-				
-				utente = new JLabel("Pincopallino");
-				utente.setHorizontalAlignment(SwingConstants.CENTER);
-				utente.setBounds(10, 87, 137, 23);
-				sideBoard.add(utente);
-				
-				btnTransazione = new JButton("Transazione");
-				btnTransazione.setBackground(null);
-				btnTransazione.setBorderPainted(false);
-				btnTransazione.setIcon(new ImageIcon(MyWalletApp.class.getResource("/pictures/hand32.png")));
-				btnTransazione.setBounds(0, 203, 157, 58);
-				sideBoard.add(btnTransazione);
-				
-				btnHome = new JButton("DashBoard");
-				btnHome.setBackground(null);
-				btnHome.setBorderPainted(false);
-				btnHome.setIcon(new ImageIcon(MyWalletApp.class.getResource("/pictures/home32.png")));
-				btnHome.setBounds(0, 121, 157, 66);
-				sideBoard.add(btnHome);
+		balance = new JLabel("0.0\u20AC");
+		balance.setHorizontalAlignment(SwingConstants.CENTER);
+		balance.setBounds(20, 78, 77, 32);
+		homePanel.add(balance);
+		
+		savings = new JLabel("0.0\u20AC");
+		savings.setHorizontalAlignment(SwingConstants.CENTER);
+		savings.setBounds(386, 78, 77, 32);
+		homePanel.add(savings);
+		
+		transactionTable = new JTable();
+		transactionTable.setShowVerticalLines(false);
+		transactionTable.setShowGrid(false);
+		transactionTable.setShowHorizontalLines(false);
+		transactionTable.setRowSelectionAllowed(false);
+		transactionTable.setModel(new DefaultTableModel() {
+			//Non-Editable Jtable
+			@Override
+			   public boolean isCellEditable(int row, int column) {
+		       return false;
+		   }
+			
+		});
+		transactionTable.setBounds(10, 317, 607, 160);
+		
+		JScrollPane scrollPane = new JScrollPane(transactionTable);
+		scrollPane.setBackground(null);
+		scrollPane.setForeground(null);
+		scrollPane.setSize(607, 160);
+		scrollPane.setLocation(10, 317);
+		homePanel.add(scrollPane);
 		
 		transazionePanel = new JPanel();
 		transazionePanel.setBounds(161, 0, 627, 488);
@@ -279,87 +411,6 @@ public class MyWalletApp {
 		labelAmmontare.setHorizontalAlignment(SwingConstants.CENTER);
 		labelAmmontare.setBounds(145, 205, 81, 17);
 		transazionePanel.add(labelAmmontare);
-
-		
-		
-		homePanel = new JPanel();
-		homePanel.setBounds(161, 0, 627, 488);
-		homePanel.setLayout(null);
-		frmMywallet.getContentPane().add(homePanel);
-		panels.add(homePanel);
-		
-		JLabel balanceLabel = new JLabel("Bilancio");
-		balanceLabel.setIcon(new ImageIcon(MyWalletApp.class.getResource("/pictures/coin32.png")));
-		balanceLabel.setHorizontalAlignment(SwingConstants.CENTER);
-		balanceLabel.setBounds(60, 35, 103, 32);
-		homePanel.add(balanceLabel);
-		
-		JLabel savingsLabel = new JLabel("Totale Risparmi");
-		savingsLabel.setIcon(new ImageIcon(MyWalletApp.class.getResource("/pictures/savings32.png")));
-		savingsLabel.setHorizontalAlignment(SwingConstants.CENTER);
-		savingsLabel.setBounds(431, 35, 156, 32);
-		homePanel.add(savingsLabel);
-		
-
-		
-		regFormAzienda = new JPanel();
-		panels.add(regFormAzienda);
-		regFormAzienda.setBounds(0, 0, 786, 488);
-		frmMywallet.getContentPane().add(regFormAzienda);
-		regFormAzienda.setLayout(null);
-		
-		textNomeAzienda = new JTextField();
-		textNomeAzienda.setBounds(336, 174, 161, 20);
-		regFormAzienda.add(textNomeAzienda);
-		textNomeAzienda.setColumns(10);
-		
-		textPartitaIVA = new JTextField();
-		textPartitaIVA.setBounds(336, 217, 161, 20);
-		regFormAzienda.add(textPartitaIVA);
-		textPartitaIVA.setColumns(10);
-		
-		submitRegisterAzienda = new JButton("Invia Registrazione");
-		submitRegisterAzienda.setBounds(292, 309, 177, 30);
-		regFormAzienda.add(submitRegisterAzienda);
-		
-		JLabel labelNome = new JLabel("Nome Societ\u00E0:");
-		labelNome.setHorizontalAlignment(SwingConstants.CENTER);
-		labelNome.setBounds(217, 177, 95, 14);
-		regFormAzienda.add(labelNome);
-		
-		JLabel labelPIVA = new JLabel("Partita IVA:");
-		labelPIVA.setHorizontalAlignment(SwingConstants.CENTER);
-		labelPIVA.setBounds(217, 220, 95, 14);
-		regFormAzienda.add(labelPIVA);
-		
-		passAziendaLabel = new JLabel("Password:");
-		passAziendaLabel.setHorizontalAlignment(SwingConstants.CENTER);
-		passAziendaLabel.setBounds(217, 260, 95, 20);
-		regFormAzienda.add(passAziendaLabel);
-		
-		passAzienda = new JPasswordField();
-		passAzienda.setBounds(336, 260, 161, 20);
-		regFormAzienda.add(passAzienda);
-				
-		JLabel transactionLabel = new JLabel("Transazioni recenti");
-		transactionLabel.setIcon(new ImageIcon(MyWalletApp.class.getResource("/pictures/clock32.png")));
-		transactionLabel.setHorizontalAlignment(SwingConstants.CENTER);
-		transactionLabel.setBounds(60, 277, 192, 32);
-		homePanel.add(transactionLabel);
-		
-		balance = new JLabel("0.0\u20AC");
-		balance.setHorizontalAlignment(SwingConstants.CENTER);
-		balance.setBounds(70, 78, 77, 32);
-		homePanel.add(balance);
-		
-		savings = new JLabel("0.0\u20AC");
-		savings.setHorizontalAlignment(SwingConstants.CENTER);
-		savings.setBounds(458, 78, 77, 32);
-		homePanel.add(savings);
-		
-		transactionList = new JList();
-		transactionList.setBounds(10, 319, 607, 158);
-		homePanel.add(transactionList);
 		
 		
 		loginPanel = new JPanel();
@@ -433,48 +484,98 @@ public class MyWalletApp {
 		regFormPrivato.setLayout(null);
 		
 		submitRegisterPrivato = new JButton("Invia Registrazione");
-		submitRegisterPrivato.setBounds(297, 238, 177, 30);
+		submitRegisterPrivato.setBounds(332, 232, 177, 30);
 		regFormPrivato.add(submitRegisterPrivato);
 		
 		textNomePrivato = new JTextField();
-		textNomePrivato.setBounds(225, 109, 123, 20);
+		textNomePrivato.setBounds(386, 46, 123, 20);
 		regFormPrivato.add(textNomePrivato);
 		textNomePrivato.setColumns(10);
 		
 		textCognome = new JTextField();
-		textCognome.setBounds(225, 140, 123, 20);
+		textCognome.setBounds(386, 76, 123, 20);
 		regFormPrivato.add(textCognome);
 		textCognome.setColumns(10);
 		
 		textCodFiscale = new JTextField();
-		textCodFiscale.setBounds(472, 109, 123, 20);
+		textCodFiscale.setBounds(386, 107, 123, 20);
 		regFormPrivato.add(textCodFiscale);
 		textCodFiscale.setColumns(10);
 		
 		textDataNascita = new JFormattedTextField(dateMask);
 		textDataNascita.setColumns(10);
-		textDataNascita.setBounds(472, 140, 123, 20);
+		textDataNascita.setBounds(386, 138, 123, 20);
 		regFormPrivato.add(textDataNascita);
 		
 		JLabel nomeLabel = new JLabel("Nome:");
 		nomeLabel.setHorizontalAlignment(SwingConstants.CENTER);
-		nomeLabel.setBounds(144, 111, 86, 17);
+		nomeLabel.setBounds(315, 48, 86, 17);
 		regFormPrivato.add(nomeLabel);
 		
 		JLabel cognomeLabel = new JLabel("Cognome:");
 		cognomeLabel.setHorizontalAlignment(SwingConstants.CENTER);
-		cognomeLabel.setBounds(144, 140, 86, 20);
+		cognomeLabel.setBounds(304, 76, 86, 20);
 		regFormPrivato.add(cognomeLabel);
 		
 		JLabel codFiscaleLabel = new JLabel("Codice Fiscale:");
 		codFiscaleLabel.setHorizontalAlignment(SwingConstants.CENTER);
-		codFiscaleLabel.setBounds(383, 111, 79, 17);
+		codFiscaleLabel.setBounds(297, 109, 79, 17);
 		regFormPrivato.add(codFiscaleLabel);
 		
 		JLabel dataNascitaLabel = new JLabel("Data di Nascita:");
 		dataNascitaLabel.setHorizontalAlignment(SwingConstants.CENTER);
-		dataNascitaLabel.setBounds(376, 142, 86, 17);
+		dataNascitaLabel.setBounds(290, 140, 86, 17);
 		regFormPrivato.add(dataNascitaLabel);
+		
+		JLabel passPrivatoLabel = new JLabel("Password:");
+		passPrivatoLabel.setHorizontalAlignment(SwingConstants.CENTER);
+		passPrivatoLabel.setBounds(297, 171, 90, 17);
+		regFormPrivato.add(passPrivatoLabel);
+		
+		passPrivato = new JPasswordField();
+		passPrivato.setBounds(386, 169, 123, 20);
+		regFormPrivato.add(passPrivato);
+		
+
+		
+		regFormAzienda = new JPanel();
+		panels.add(regFormAzienda);
+		regFormAzienda.setBounds(0, 0, 786, 488);
+		frmMywallet.getContentPane().add(regFormAzienda);
+		regFormAzienda.setLayout(null);
+		
+		textNomeAzienda = new JTextField();
+		textNomeAzienda.setBounds(336, 174, 161, 20);
+		regFormAzienda.add(textNomeAzienda);
+		textNomeAzienda.setColumns(10);
+		
+		textPartitaIVA = new JTextField();
+		textPartitaIVA.setBounds(336, 217, 161, 20);
+		regFormAzienda.add(textPartitaIVA);
+		textPartitaIVA.setColumns(10);
+		
+		submitRegisterAzienda = new JButton("Invia Registrazione");
+		submitRegisterAzienda.setBounds(292, 309, 177, 30);
+		regFormAzienda.add(submitRegisterAzienda);
+		
+		JLabel labelNome = new JLabel("Nome Societ\u00E0:");
+		labelNome.setHorizontalAlignment(SwingConstants.CENTER);
+		labelNome.setBounds(217, 177, 95, 14);
+		regFormAzienda.add(labelNome);
+		
+		JLabel labelPIVA = new JLabel("Partita IVA:");
+		labelPIVA.setHorizontalAlignment(SwingConstants.CENTER);
+		labelPIVA.setBounds(217, 220, 95, 14);
+		regFormAzienda.add(labelPIVA);
+		
+		JLabel passAziendaLabel = new JLabel("Password:");
+		passAziendaLabel.setHorizontalAlignment(SwingConstants.CENTER);
+		passAziendaLabel.setBounds(217, 260, 95, 20);
+		regFormAzienda.add(passAziendaLabel);
+		
+		passAzienda = new JPasswordField();
+		passAzienda.setBounds(336, 260, 161, 20);
+		regFormAzienda.add(passAzienda);
 	}
 
 

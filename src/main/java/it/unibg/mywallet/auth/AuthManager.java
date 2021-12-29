@@ -15,22 +15,30 @@ public class AuthManager {
 	@Getter
 	private static AuthManager instance = new AuthManager();
 	
-
 	/**
-	 * return if the user and password combinations are correct
+	 * return if the user and password combinations are correct and which account type it is.
 	 * @param userName the given username.
 	 * @param password the given password.
-	 * @return true or false.
+	 * @return {@link AuthResult}
 	 */
-	public boolean login(String userName, String password) {
+	public AuthResult login(String userName, String password) {
 		String hash = Hashing.sha256().hashString(password, StandardCharsets.UTF_8).toString();
 		if(DatabaseManager.getInstance().isAgency(userName)) {
-			return DatabaseManager.getInstance().getPasswordAgency(userName).equals(hash);
+			if(DatabaseManager.getInstance().getPasswordAgency(userName).equals(hash)) {
+				return AuthResult.AZIENDA;
+				
+			}else {
+				return AuthResult.DATI_INVALIDI;
+			}
 		}
 		if(DatabaseManager.getInstance().isPerson(userName)) {
-			return DatabaseManager.getInstance().getPasswordPerson(userName).equals(hash);
+			if (DatabaseManager.getInstance().getPasswordPerson(userName).equals(hash)) {
+				return AuthResult.PRIVATO;
+			}else {
+				return AuthResult.DATI_INVALIDI;
+			}
 		}
-		return false;
+		return AuthResult.DATI_INVALIDI;
 	}
 
 }

@@ -1,4 +1,11 @@
 C:\Users\David\Desktop\MyWallet\src\main\java\it\unibg\mywallet\database\DatabaseManager.java
+C:\Users\David\Desktop\MyWallet\src\main\java\it\unibg\mywallet\model\transactions\impl\Prestito.java
 C:\Users\David\Desktop\MyWallet\src\main\java\it\unibg\mywallet\MyWalletApp.java
-C:\Users\David\Desktop\MyWallet\src\main\java\it\unibg\mywallet\model\Utente.java
+C:\Users\David\Desktop\MyWallet\src\main\java\it\unibg\mywallet\updater\UpdateManager.java
+C:\Users\David\Desktop\MyWallet\src\main\java\it\unibg\mywallet\model\transactions\Transazione.java
+C:\Users\David\Desktop\MyWallet\src\main\java\it\unibg\mywallet\auth\AuthResult.java
+C:\Users\David\Desktop\MyWallet\src\main\java\it\unibg\mywallet\model\user\impl\Azienda.java
+C:\Users\David\Desktop\MyWallet\src\main\java\it\unibg\mywallet\model\user\Utente.java
 C:\Users\David\Desktop\MyWallet\src\main\java\it\unibg\mywallet\auth\AuthManager.java
+C:\Users\David\Desktop\MyWallet\src\main\java\it\unibg\mywallet\model\transactions\impl\Pagamento.java
+C:\Users\David\Desktop\MyWallet\src\main\java\it\unibg\mywallet\model\user\impl\Persona.java
