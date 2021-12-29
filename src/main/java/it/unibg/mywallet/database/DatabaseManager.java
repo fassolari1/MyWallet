@@ -292,7 +292,7 @@ public class DatabaseManager {
 	 * @return true or false.
 	 */
 	public boolean isPerson(int id) {
-		try(PreparedStatement queryUser = this.conn.prepareStatement("SELECT EXISTS(SELECT * FROM PERSONA WHERE nome = ?)")) {
+		try(PreparedStatement queryUser = this.conn.prepareStatement("SELECT EXISTS(SELECT * FROM PERSONA WHERE ID = ?)")) {
 			queryUser.setInt(1, id);
 			ResultSet resultSet = queryUser.executeQuery();
 			return resultSet.getBoolean(1);
@@ -309,7 +309,7 @@ public class DatabaseManager {
 	 */
 	public boolean isAgency(int id) {
 		//Use try with resource to release the connection after query to avoid memory leak
-		try(PreparedStatement queryUser = this.conn.prepareStatement("SELECT EXISTS(SELECT * FROM AZIENDA WHERE ragione_sociale = ?)")) {
+		try(PreparedStatement queryUser = this.conn.prepareStatement("SELECT EXISTS(SELECT * FROM AZIENDA WHERE ID = ?)")) {
 			//assign to placeholder with index 1 value the name
 			queryUser.setInt(1, id);
 			//get ResultSet from our query
