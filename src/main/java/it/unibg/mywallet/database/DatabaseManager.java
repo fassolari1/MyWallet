@@ -6,17 +6,10 @@ import java.sql.*;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
-import java.util.Set;
 import java.util.Vector;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import com.google.common.hash.Hashing;
 
-import it.unibg.mywallet.model.transactions.Transazione;
-import it.unibg.mywallet.model.transactions.impl.Pagamento;
-import it.unibg.mywallet.model.transactions.impl.Prestito;
 import it.unibg.mywallet.model.user.Utente;
 import it.unibg.mywallet.model.user.impl.Azienda;
 import it.unibg.mywallet.model.user.impl.Persona;
@@ -287,37 +280,37 @@ public class DatabaseManager {
 	}
 	
 	/**
-	 * returns true if there is a person associated with the given username.
-	 * @param name the username.
+	 * returns true if there is a person associated with the given id.
+	 * @param name the id.
 	 * @return true or false.
 	 */
-	public boolean isPerson(String name) {
-		try(PreparedStatement queryUser = this.conn.prepareStatement("SELECT EXISTS(SELECT * FROM PERSONA WHERE nome = ?)")) {
-			queryUser.setString(1, name);
+	public boolean isPerson(int id) {
+		try(PreparedStatement queryUser = this.conn.prepareStatement("SELECT EXISTS(SELECT * FROM PERSONA WHERE ID = ?)")) {
+			queryUser.setInt(1, id);
 			ResultSet resultSet = queryUser.executeQuery();
 			return resultSet.getBoolean(1);
 		} catch (SQLException ex) {
-			System.err.println("Autenticazione fallita per l'utente: " + name);
+			System.err.println("Autenticazione fallita per l'utente: " + id);
 			return false;
 		}
 	}
 	
 	/**
-	 * returns true if there is an ageny associated with the given username.
-	 * @param name the username.
+	 * returns true if there is an ageny associated with the given id.
+	 * @param name the id.
 	 * @return true or false.
 	 */
-	public boolean isAgency(String name) {
+	public boolean isAgency(int id) {
 		//Use try with resource to release the connection after query to avoid memory leak
-		try(PreparedStatement queryUser = this.conn.prepareStatement("SELECT EXISTS(SELECT * FROM AZIENDA WHERE ragione_sociale = ?)")) {
+		try(PreparedStatement queryUser = this.conn.prepareStatement("SELECT EXISTS(SELECT * FROM AZIENDA WHERE ID = ?)")) {
 			//assign to placeholder with index 1 value the name
-			queryUser.setString(1, name);
+			queryUser.setInt(1, id);
 			//get ResultSet from our query
 			ResultSet resultSet = queryUser.executeQuery();
 			//return result with index 1
 			return resultSet.getBoolean(1);
 		} catch (SQLException ex) {
-			System.err.println("Autenticazione fallita per l'utente: " + name);
+			System.err.println("Autenticazione fallita per l'utente: " + id);
 			return false;
 		}
 	}

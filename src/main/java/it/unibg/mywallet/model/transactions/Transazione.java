@@ -4,6 +4,7 @@ import java.util.Date;
 
 import lombok.AllArgsConstructor;
 
+
 @AllArgsConstructor
 public abstract class Transazione implements Comparable<Transazione> {
 
