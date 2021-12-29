@@ -34,6 +34,7 @@ import javax.swing.JFormattedTextField;
 import javax.swing.JOptionPane;
 import javax.swing.JTable;
 import javax.swing.JScrollPane;
+import javax.swing.JCheckBox;
 
 public class MyWalletApp {
 	
@@ -65,6 +66,7 @@ public class MyWalletApp {
 	private JPanel transazionePanel;
 	private JTextField receiverText;
 	private JTextField amountText;
+	private JCheckBox lendingCheckBox;
 	private JButton sendBtn;
 	//HomePanel
 	private JPanel homePanel;
@@ -113,6 +115,9 @@ public class MyWalletApp {
 		hideAllExcept(loginPanel);
 	}
 
+	/**
+	 * Clears all the input data from the previous session
+	 */
 	private void clearOldData() {
 		updateManager.stop();
 		updateManager = null;
@@ -129,6 +134,10 @@ public class MyWalletApp {
 		textCodFiscale.setText(null);
 		textDataNascita.setText(null);
 		passPrivato.setText(null);
+		//Transazione
+		lendingCheckBox.setSelected(false);
+		receiverText.setText(null);
+		amountText.setText(null);
 		//Home
 		risparmioText.setText(null);
 		((DefaultTableModel)transactionTable.getModel()).setRowCount(0);
@@ -251,20 +260,32 @@ public class MyWalletApp {
 		
 		sendBtn.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
+
+				Utente sender = updateManager.getUtente();
 				double amount = Double.valueOf(amountText.getText().replace(",", "."));
+				int receiverId =  Integer.parseInt(receiverText.getText());
+				
 				if(amount <= 0) {
 				    JOptionPane.showMessageDialog(frmMywallet, "La somma da inviare deve essere maggiore di 0.00 €", "Transaction error",JOptionPane.ERROR_MESSAGE);
 				    return;
 				}
-				
-				double cashback = amount * 0.03; // 3% di cashback
-				
+
 				db.aggiungiPagamento(Integer.valueOf(receiverText.getText()), amount, new java.sql.Date(Calendar.getInstance().getTime().getTime()));
 				
-				Utente sender = updateManager.getUtente();
-				if(!sender.inviaPagamento(amount)) {
-				    JOptionPane.showMessageDialog(frmMywallet, "Saldo insufficiente!", "Transaction error",JOptionPane.ERROR_MESSAGE);
-				    return;
+				if(!lendingCheckBox.isSelected()) {
+					//Non si tratta di un prestito
+					//Invia un pagamento detraendo il 3% di cashback
+					if(!sender.inviaPagamento(amount - (amount * 0.03))) {
+					    JOptionPane.showMessageDialog(frmMywallet, "Saldo insufficiente!", "Transaction error",JOptionPane.ERROR_MESSAGE);
+					    return;
+					}
+					
+				}else {
+					//Si tratta di un prestito quindi no cashback
+					if(!sender.inviaPagamento(amount)) {
+					    JOptionPane.showMessageDialog(frmMywallet, "Saldo insufficiente!", "Transaction error",JOptionPane.ERROR_MESSAGE);
+					    return;
+					}
 				}
 			}
 		});
@@ -445,7 +466,7 @@ public class MyWalletApp {
 		amountText.setColumns(10);
 		
 		sendBtn = new JButton("Invia Denaro");
-		sendBtn.setBounds(198, 259, 124, 23);
+		sendBtn.setBounds(198, 283, 124, 23);
 		transazionePanel.add(sendBtn);
 		
 		JLabel labelRicevente = new JLabel("Ricevente:");
@@ -457,6 +478,11 @@ public class MyWalletApp {
 		labelAmmontare.setHorizontalAlignment(SwingConstants.CENTER);
 		labelAmmontare.setBounds(145, 205, 81, 17);
 		transazionePanel.add(labelAmmontare);
+		
+		lendingCheckBox = new JCheckBox("Prestito");
+		lendingCheckBox.setHorizontalAlignment(SwingConstants.CENTER);
+		lendingCheckBox.setBounds(236, 242, 86, 23);
+		transazionePanel.add(lendingCheckBox);
 		
 		
 		loginPanel = new JPanel();
@@ -625,6 +651,10 @@ public class MyWalletApp {
 	}
 
 
+	/**
+	 * Hide all panels except the given ones.
+	 * @param panelsToShow the panels to show.
+	 */
 	private void hideAllExcept(JPanel... panelsToShow) {
 		panels.forEach(pan -> pan.setEnabled(false));
 		panels.forEach(pan -> pan.setVisible(false));

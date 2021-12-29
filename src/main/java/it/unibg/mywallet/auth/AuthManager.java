@@ -9,6 +9,10 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+/**
+ * Authentication Manager class
+ */
+
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class AuthManager {
 	

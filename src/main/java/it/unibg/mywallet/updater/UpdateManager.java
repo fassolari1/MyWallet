@@ -59,7 +59,7 @@ public class UpdateManager implements Runnable {
 			risparmio.setText(String.format("%,.2f €", utente.getRisparmio()));
 			transazioniRecenti.setDataVector(DatabaseManager.getInstance().getRecentTransaction(utente), columnsIdentifier);
 			try {
-				//Update every 100 ms
+				//Update every 1 s
 				Thread.sleep(1000);
 			} catch (InterruptedException ex) {
 				ex.printStackTrace();

@@ -7,6 +7,10 @@ import java.util.Date;
 
 import it.unibg.mywallet.model.transactions.Transazione;
 
+/**
+ * Prestito is a class that extend Transazione.
+ * dataScadenza is a expiry date for return the money
+ */
 public class Prestito extends Transazione {
 	
 	private Date dataScadenza;
@@ -18,14 +22,6 @@ public class Prestito extends Transazione {
 				lendings.getDate(4));
 	
 		this.dataScadenza = lendings.getDate(5);
-	}
-	
-
-	@Override
-	public String toString() {
-		SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
-		return id + " | " + idUtente + " | " + ammontare + " | " + dateFormat.format(dataScadenza)+ " | " + dateFormat.format(dataContabilizzazione);
-	
 	}
 
 }
