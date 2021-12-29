@@ -167,11 +167,13 @@ public class DatabaseManager {
 		String sql_update_bilancio = null;
 		if(this.isPerson(id)) sql_update_bilancio = "UPDATE PERSONA SET bilancio = bilancio-"+amount+" WHERE ID = "+id+"";
 		if(this.isAgency(id)) sql_update_bilancio = "UPDATE AZIENDA SET bilancio = bilancio-"+amount+" WHERE ID = "+id+"";
+		System.out.println(1);
 
 		Statement stmt = null;
 		
 		try(PreparedStatement insertPayment = this.conn.prepareStatement("INSERT INTO PAGAMENTO(ID, ID_utente, ammontare, data_contabilizzazione) VALUES(?,?,?,?)")) {
-			
+
+			System.out.println(2);
 			stmt = this.conn.createStatement();
 			ResultSet rs_azienda = stmt.executeQuery(sql_select_pagamento);
 			while (rs_azienda.next()) ids.add(Integer.valueOf(rs_azienda.getInt("ID")));
@@ -182,13 +184,17 @@ public class DatabaseManager {
 			}else {
 			new_id = Collections.max(ids).intValue()+1;
 			}
-		
+
+			System.out.println("ID-" + new_id);
 			insertPayment.setInt(1, new_id);
 			insertPayment.setInt(2, id);
 			insertPayment.setDouble(3, amount);
 			insertPayment.setDate(4, date);
 			insertPayment.executeUpdate();
-			insertPayment.executeUpdate(sql_update_bilancio);
+			
+			Statement another = this.conn.createStatement();
+			another.execute(sql_update_bilancio);
+			System.out.println(5);
 		} catch (SQLException ex) {
 			System.err.println("Transazione fallita per l'utente con ID: " + id);
 			ex.printStackTrace();
@@ -197,6 +203,7 @@ public class DatabaseManager {
 	}
 	
 	public void aggiungiPrestito(int id_utente, Date data_ultima_scadenza) { //da sostituire poi "int id_utente" con "Utente u" // da sostituire data con un oggetto di tipo Date
+		
 		String sql = "INSERT INTO PRESTITO(ID_utente, data_ultima_scadenza) VALUES('"+id_utente+"','"+data_ultima_scadenza+"')";
 		Statement stmt = null;
 		try {

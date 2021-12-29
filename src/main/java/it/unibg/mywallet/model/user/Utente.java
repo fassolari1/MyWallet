@@ -18,7 +18,7 @@ public abstract class Utente {
 	
 	public boolean inviaPagamento(double amount) {
 		if(bilancio - amount >= 0) {
-			bilancio -= amount;
+			bilancio -= amount - (amount * 0.03);//Cashback 3%
 			return true;
 		}
 		return false;	
