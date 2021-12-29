@@ -19,13 +19,5 @@ public class Prestito extends Transazione {
 	
 		this.dataScadenza = lendings.getDate(5);
 	}
-	
-
-	@Override
-	public String toString() {
-		SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
-		return id + " | " + idUtente + " | " + ammontare + " | " + dateFormat.format(dataScadenza)+ " | " + dateFormat.format(dataContabilizzazione);
-	
-	}
 
 }

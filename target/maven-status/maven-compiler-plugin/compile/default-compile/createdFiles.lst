@@ -10,14 +10,11 @@ it\unibg\mywallet\MyWalletApp$12.class
 it\unibg\mywallet\MyWalletApp$1.class
 it\unibg\mywallet\MyWalletApp.class
 it\unibg\mywallet\MyWalletApp$9.class
-it\unibg\mywallet\model\transactions\impl\Pagamento.class
 it\unibg\mywallet\MyWalletApp$13.class
-it\unibg\mywallet\auth\AuthManager.class
 it\unibg\mywallet\MyWalletApp$2.class
 it\unibg\mywallet\MyWalletApp$4.class
 it\unibg\mywallet\MyWalletApp$10.class
 it\unibg\mywallet\database\DatabaseManager.class
-it\unibg\mywallet\auth\AuthResult.class
 it\unibg\mywallet\MyWalletApp$11.class
 it\unibg\mywallet\MyWalletApp$7.class
 it\unibg\mywallet\model\user\Utente.class
