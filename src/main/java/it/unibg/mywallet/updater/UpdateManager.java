@@ -16,15 +16,9 @@ import lombok.Getter;
  * UpdateManager is used for refersh the application interface and upgrade the data
  * @Getter of all the attributes
  * @running can stop the while circle
- *
-<<<<<<< HEAD
  * Update manager is a class which handles the graphic interface by updating its components
  *
  */
-
-=======
- */
->>>>>>> 2468868af0770a1c95cbe06036cf9be8a2512309
 public class UpdateManager implements Runnable {
 	
 	private final Vector<String> columnsIdentifier =  new Vector<String>();
