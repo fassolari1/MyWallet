@@ -227,10 +227,9 @@ public class MyWalletApp {
 		submitRegisterAzienda.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				hideAllExcept(sideBoard,homePanel);
-				db.aggiungiCredenziali(
-						db.aggiungiAzienda(textNomeAzienda.getText(), textPartitaIVA.getText()),
-						String.valueOf(passAzienda.getPassword()));
-				updateManager = new UpdateManager(db.getAzienda(Integer.parseInt(textNomeAzienda.getText())), utente, balance, savings, (DefaultTableModel)transactionTable.getModel());
+				int idAzienda = db.aggiungiAzienda(textNomeAzienda.getText(), textPartitaIVA.getText());
+				db.aggiungiCredenziali(idAzienda,	String.valueOf(passAzienda.getPassword()));
+				updateManager = new UpdateManager(db.getAzienda(idAzienda), utente, balance, savings, (DefaultTableModel)transactionTable.getModel());
 			}
 		});
 		
@@ -239,12 +238,11 @@ public class MyWalletApp {
 			public void actionPerformed(ActionEvent e) {
 				hideAllExcept(sideBoard,homePanel);
 				try {
-					db.aggiungiCredenziali(
-							db.aggiungiPersona(textNomePrivato.getText(), textCognome.getText(), textCodFiscale.getText(), new SimpleDateFormat("dd/MM/yyyy").parse(textDataNascita.getText())),
-							String.valueOf(passPrivato.getPassword()));
+					int idPersona = db.aggiungiPersona(textNomePrivato.getText(), textCognome.getText(), textCodFiscale.getText(), new SimpleDateFormat("dd/MM/yyyy").parse(textDataNascita.getText()));
+					db.aggiungiCredenziali(idPersona,String.valueOf(passPrivato.getPassword()));
 					
 
-					updateManager = new UpdateManager(db.getPerson(Integer.parseInt(textNomePrivato.getText())), utente, balance, savings, (DefaultTableModel)transactionTable.getModel());
+					updateManager = new UpdateManager(db.getPerson(idPersona), utente, balance, savings, (DefaultTableModel)transactionTable.getModel());
 				} catch (ParseException ex) {
 					// TODO Auto-generated catch block
 				    JOptionPane.showMessageDialog(frmMywallet, "La data di nascita inserita non è nel formato corretto!", "Registration error",JOptionPane.ERROR_MESSAGE);
@@ -263,22 +261,20 @@ public class MyWalletApp {
 
 				Utente sender = updateManager.getUtente();
 				double amount = Double.valueOf(amountText.getText().replace(",", "."));
-				int receiverId =  Integer.parseInt(receiverText.getText());
 				
 				if(amount <= 0) {
 				    JOptionPane.showMessageDialog(frmMywallet, "La somma da inviare deve essere maggiore di 0.00 €", "Transaction error",JOptionPane.ERROR_MESSAGE);
 				    return;
 				}
 
-				db.aggiungiPagamento(Integer.valueOf(receiverText.getText()), amount, new java.sql.Date(Calendar.getInstance().getTime().getTime()));
-				
 				if(!lendingCheckBox.isSelected()) {
 					//Non si tratta di un prestito
-					//Invia un pagamento detraendo il 3% di cashback
-					if(!sender.inviaPagamento(amount - (amount * 0.03))) {
+					if(!sender.inviaPagamento(amount)) {
+						//Invia un pagamento detraendo il 3% di cashback
 					    JOptionPane.showMessageDialog(frmMywallet, "Saldo insufficiente!", "Transaction error",JOptionPane.ERROR_MESSAGE);
 					    return;
 					}
+					db.aggiungiPagamento(Integer.valueOf(receiverText.getText()), amount - (amount * 0.03), new java.sql.Date(Calendar.getInstance().getTime().getTime()));
 					
 				}else {
 					//Si tratta di un prestito quindi no cashback
@@ -286,6 +282,7 @@ public class MyWalletApp {
 					    JOptionPane.showMessageDialog(frmMywallet, "Saldo insufficiente!", "Transaction error",JOptionPane.ERROR_MESSAGE);
 					    return;
 					}
+					db.aggiungiPagamento(Integer.valueOf(receiverText.getText()), amount, new java.sql.Date(Calendar.getInstance().getTime().getTime()));
 				}
 			}
 		});

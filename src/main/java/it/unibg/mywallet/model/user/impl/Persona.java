@@ -22,8 +22,8 @@ public class Persona extends Utente {
 
 	public Persona(ResultSet resultSet) throws SQLException {
 		super(resultSet.getInt(1),
-				resultSet.getDouble(6),
-				resultSet.getDouble(7));
+				resultSet.getDouble(7),
+				resultSet.getDouble(6));
 		this.nome = resultSet.getString(2);
 		this.cognome = resultSet.getString(3);
 		this.codFiscale = resultSet.getString(4).toCharArray();
