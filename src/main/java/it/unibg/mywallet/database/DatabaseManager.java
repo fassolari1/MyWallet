@@ -79,8 +79,15 @@ public class DatabaseManager {
 	}
 	
 
-	//METODI
-	
+
+	/**
+	 * saves a person object to the database
+	 * @param nome the name of the person.
+	 * @param cognome surname of the person.
+	 * @param cod_fisc SSN of the person.
+	 * @param date date of birth of the person
+	 * @return an integer representing the id associated with the account.
+	 */
 	public int aggiungiPersona(String nome, String cognome, String cod_fisc, java.util.Date date) { // da sostituire data con un oggetto di tipo Date
 		Statement stmt = null;
 		int new_id;
@@ -114,6 +121,12 @@ public class DatabaseManager {
 		}
 	}
 	
+	/**
+	 * saves an agency to the database.
+	 * @param ragione_sociale the agency name.
+	 * @param p_iva the agency EIN.
+	 * @return an integer representing the account id.
+	 */
 	public int aggiungiAzienda(String ragione_sociale, String p_iva) {
 		int new_id;
 		ArrayList<Integer> ids = new ArrayList<Integer>();
@@ -143,6 +156,11 @@ public class DatabaseManager {
 		}
 	}
 	
+	/**
+	 * saves to the database the credentials for a user.
+	 * @param id_utente the given user id.
+	 * @param password the user's password.
+	 */
 	public void aggiungiCredenziali(int id_utente, String password) { // da sostituire poi "int id_utente" con "Utente u"
 		String passHash = Hashing.sha256().hashString(password, StandardCharsets.UTF_8).toString();
 		String sql = "INSERT INTO CREDENZIALE(ID_utente, password) VALUES('"+id_utente+"','"+passHash+"')";
@@ -157,6 +175,12 @@ public class DatabaseManager {
 		}
 	}
 	
+	/**
+	 * saves a payment log to the database.
+	 * @param id the given user's id.
+	 * @param amount the given amount.
+	 * @param date the payment date.
+	 */
 	public void aggiungiPagamento(int id, double amount, Date date) {
 		
 
@@ -165,15 +189,14 @@ public class DatabaseManager {
 		String sql_select_pagamento = "SELECT ID FROM PAGAMENTO";
 		String sql_select_prestito = "SELECT ID FROM PRESTITO";
 		String sql_update_bilancio = null;
-		if(this.isPerson(id)) sql_update_bilancio = "UPDATE PERSONA SET bilancio = bilancio-"+amount+" WHERE ID = "+id+"";
-		if(this.isAgency(id)) sql_update_bilancio = "UPDATE AZIENDA SET bilancio = bilancio-"+amount+" WHERE ID = "+id+"";
-		System.out.println(1);
+		
+		if(this.isPerson(id)) sql_update_bilancio = "UPDATE PERSONA SET bilancio = bilancio+"+amount+" WHERE ID = "+id+"";
+		if(this.isAgency(id)) sql_update_bilancio = "UPDATE AZIENDA SET bilancio = bilancio+"+amount+" WHERE ID = "+id+"";
 
 		Statement stmt = null;
 		
 		try(PreparedStatement insertPayment = this.conn.prepareStatement("INSERT INTO PAGAMENTO(ID, ID_utente, ammontare, data_contabilizzazione) VALUES(?,?,?,?)")) {
 
-			System.out.println(2);
 			stmt = this.conn.createStatement();
 			ResultSet rs_azienda = stmt.executeQuery(sql_select_pagamento);
 			while (rs_azienda.next()) ids.add(Integer.valueOf(rs_azienda.getInt("ID")));
@@ -185,7 +208,6 @@ public class DatabaseManager {
 			new_id = Collections.max(ids).intValue()+1;
 			}
 
-			System.out.println("ID-" + new_id);
 			insertPayment.setInt(1, new_id);
 			insertPayment.setInt(2, id);
 			insertPayment.setDouble(3, amount);
@@ -194,7 +216,6 @@ public class DatabaseManager {
 			
 			Statement another = this.conn.createStatement();
 			another.execute(sql_update_bilancio);
-			System.out.println(5);
 		} catch (SQLException ex) {
 			System.err.println("Transazione fallita per l'utente con ID: " + id);
 			ex.printStackTrace();
@@ -202,20 +223,55 @@ public class DatabaseManager {
 
 	}
 	
-	public void aggiungiPrestito(int id_utente, Date data_ultima_scadenza) { //da sostituire poi "int id_utente" con "Utente u" // da sostituire data con un oggetto di tipo Date
-		
-		String sql = "INSERT INTO PRESTITO(ID_utente, data_ultima_scadenza) VALUES('"+id_utente+"','"+data_ultima_scadenza+"')";
+	/**
+	 * saves a lending to the database.
+	 * @param id the given user's id.
+	 * @param amount the given amount.
+	 * @param date the lending's date.
+	 */
+	public void aggiungiPrestito(int id, double amount, Date date) { //da sostituire poi "int id_utente" con "Utente u" // da sostituire data con un oggetto di tipo Date
+		int new_id;
+		ArrayList<Integer> ids = new ArrayList<Integer>();
+		String sql_select_pagamento = "SELECT ID FROM PAGAMENTO";
+		String sql_select_prestito = "SELECT ID FROM PRESTITO";
+		String sql_update_bilancio = null;
+		if(this.isPerson(id)) sql_update_bilancio = "UPDATE PERSONA SET bilancio = bilancio+"+amount+" WHERE ID = "+id+"";
+		if(this.isAgency(id)) sql_update_bilancio = "UPDATE AZIENDA SET bilancio = bilancio+"+amount+" WHERE ID = "+id+"";
+
 		Statement stmt = null;
-		try {
+		
+		try(PreparedStatement insertPayment = this.conn.prepareStatement("INSERT INTO PRESTITO(ID, ID_utente, ammontare, data_contabilizzazione) VALUES(?,?,?,?)")) {
+
 			stmt = this.conn.createStatement();
-			stmt.execute(sql);
-			System.out.println("Prestito aggiunto");
-		}catch(Exception e) {
-			System.err.println( e.getClass().getName() + ": " + e.getMessage() );
-			System.exit(0);
+			ResultSet rs_azienda = stmt.executeQuery(sql_select_pagamento);
+			while (rs_azienda.next()) ids.add(Integer.valueOf(rs_azienda.getInt("ID")));
+			ResultSet rs_persona = stmt.executeQuery(sql_select_prestito);
+			while (rs_persona.next()) ids.add(Integer.valueOf(rs_persona.getInt("ID")));
+			if(ids.isEmpty()) {
+				new_id = 0;
+			}else {
+			new_id = Collections.max(ids).intValue()+1;
+			}
+
+			insertPayment.setInt(1, new_id);
+			insertPayment.setInt(2, id);
+			insertPayment.setDouble(3, amount);
+			insertPayment.setDate(4, date);
+			insertPayment.executeUpdate();
+			
+			Statement another = this.conn.createStatement();
+			another.execute(sql_update_bilancio);
+		} catch (SQLException ex) {
+			System.err.println("Prestito fallita per l'utente con ID: " + id);
+			ex.printStackTrace();
 		}
+
+		
 	}
 	
+	/**
+	 * Closes all the connections with the database.
+	 */
 	public void terminaConnessione() {
 		try {
 			this.conn.close();
@@ -327,6 +383,11 @@ public class DatabaseManager {
 	}
 
 
+	/**
+	 * returns all the top ten recent transactions for a given user.
+	 * @param utente the given user.
+	 * @return a "Table"(that will be used inside a JTable) of strings representing the recent transactions.
+	 */
 	public Vector<Vector<String>> getRecentTransaction(Utente utente) {
 
 		Vector<Vector<String>> transactions = new Vector<>();
@@ -352,9 +413,9 @@ public class DatabaseManager {
 			}
 			
 			while(lendings.next()) {
-				transactionData.add(String.valueOf(payments.getInt(1)));
-				transactionData.add(String.format("%,.2f €", payments.getDouble(3)));
-				transactionData.add(dateFormat.format(payments.getDate(4)));
+				transactionData.add(String.valueOf(lendings.getInt(1)));//Here
+				transactionData.add(String.format("%,.2f €", lendings.getDouble(3)));
+				transactionData.add(dateFormat.format(lendings.getDate(4)));
 				transactions.add((Vector<String>) transactionData.clone());
 				transactionData.clear();
 			}

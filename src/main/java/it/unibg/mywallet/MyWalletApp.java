@@ -181,24 +181,29 @@ public class MyWalletApp {
 		loginButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				
+				try {
+					switch(AuthManager.getInstance().login(Integer.parseInt(usernameField.getText()), String.valueOf(passwordField.getPassword()))) {
 				
-				switch(AuthManager.getInstance().login(Integer.parseInt(usernameField.getText()), String.valueOf(passwordField.getPassword()))) {
-				
-				case PRIVATO:
-					loginPanel.setEnabled(false);
-					loginPanel.setVisible(false);
-					hideAllExcept(sideBoard,homePanel);
-					updateManager = new UpdateManager(db.getPerson(Integer.parseInt(usernameField.getText())), utente, balance, savings, (DefaultTableModel)transactionTable.getModel());
-					break;
-				case AZIENDA:
-					loginPanel.setEnabled(false);
-					loginPanel.setVisible(false);
-					hideAllExcept(sideBoard,homePanel);
-					updateManager = new UpdateManager(db.getAzienda(Integer.parseInt(usernameField.getText())), utente, balance, savings, (DefaultTableModel)transactionTable.getModel());
-					break;
-				default:
-				    JOptionPane.showMessageDialog(frmMywallet, "Utente o password errati!", "Login error",JOptionPane.ERROR_MESSAGE);
-					break;
+					case PRIVATO:
+						loginPanel.setEnabled(false);
+						loginPanel.setVisible(false);
+						hideAllExcept(sideBoard,homePanel);
+						updateManager = new UpdateManager(db.getPerson(Integer.parseInt(usernameField.getText())), utente, balance, savings, (DefaultTableModel)transactionTable.getModel());
+						break;
+					case AZIENDA:
+						loginPanel.setEnabled(false);
+						loginPanel.setVisible(false);
+						hideAllExcept(sideBoard,homePanel);
+						updateManager = new UpdateManager(db.getAzienda(Integer.parseInt(usernameField.getText())), utente, balance, savings, (DefaultTableModel)transactionTable.getModel());
+						break;
+					default:
+						JOptionPane.showMessageDialog(frmMywallet, "Utente o password errati!", "Login error",JOptionPane.ERROR_MESSAGE);
+						break;
+					}
+				}
+				catch(NumberFormatException ex) {
+
+				    JOptionPane.showMessageDialog(frmMywallet, "L'utente deve essere un id numerico!", "Login error",JOptionPane.ERROR_MESSAGE);
 				}
 			}
 		});
@@ -274,7 +279,8 @@ public class MyWalletApp {
 					    JOptionPane.showMessageDialog(frmMywallet, "Saldo insufficiente!", "Transaction error",JOptionPane.ERROR_MESSAGE);
 					    return;
 					}
-					db.aggiungiPagamento(Integer.valueOf(receiverText.getText()), amount - (amount * 0.03), new java.sql.Date(Calendar.getInstance().getTime().getTime()));
+					db.aggiungiPagamento(Integer.valueOf(receiverText.getText()), amount, new java.sql.Date(Calendar.getInstance().getTime().getTime()));
+					db.aggiungiPagamento(sender.getId(), -amount + (amount * 0.03), new java.sql.Date(Calendar.getInstance().getTime().getTime()));
 					
 				}else {
 					//Si tratta di un prestito quindi no cashback
@@ -282,7 +288,8 @@ public class MyWalletApp {
 					    JOptionPane.showMessageDialog(frmMywallet, "Saldo insufficiente!", "Transaction error",JOptionPane.ERROR_MESSAGE);
 					    return;
 					}
-					db.aggiungiPagamento(Integer.valueOf(receiverText.getText()), amount, new java.sql.Date(Calendar.getInstance().getTime().getTime()));
+					db.aggiungiPrestito(Integer.valueOf(receiverText.getText()), amount, new java.sql.Date(Calendar.getInstance().getTime().getTime()));
+					db.aggiungiPrestito(sender.getId(), -amount, new java.sql.Date(Calendar.getInstance().getTime().getTime()));
 				}
 			}
 		});
