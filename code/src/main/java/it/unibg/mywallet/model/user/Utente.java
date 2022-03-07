@@ -2,8 +2,6 @@ package it.unibg.mywallet.model.user;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 /**
  * Utente is a user can send money to the other users with an 'id' that identifies like a primary key

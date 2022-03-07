@@ -5,9 +5,7 @@ import java.sql.SQLException;
 import java.util.Date;
 
 import it.unibg.mywallet.model.user.Utente;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 
 /**
  * Azienda is a class that extend Utente
@@ -21,14 +19,6 @@ public class Persona extends Utente {
 	private String cognome;
 	private char[] codFiscale;
 	private Date dataDiNascita;
-	
-	public Persona(int id, double bilancio, double risparmio) {
-		super(id, bilancio, risparmio);
-	}
-	
-	public Persona(int id) {
-		super(id, 0, 0);
-	}
 	
 	public Persona(ResultSet resultSet) throws SQLException {
 		super(resultSet.getInt(1),

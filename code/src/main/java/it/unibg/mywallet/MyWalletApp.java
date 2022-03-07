@@ -10,6 +10,7 @@ import it.unibg.mywallet.auth.AuthManager;
 import it.unibg.mywallet.database.DatabaseManager;
 import it.unibg.mywallet.model.user.Utente;
 import it.unibg.mywallet.updater.UpdateManager;
+import lombok.Getter;
 
 import javax.swing.JPanel;
 import javax.swing.JLabel;
@@ -36,11 +37,12 @@ import javax.swing.JTable;
 import javax.swing.JScrollPane;
 import javax.swing.JCheckBox;
 
+@Getter
 public class MyWalletApp {
 	
 	private UpdateManager updateManager;
 	
-	private Set<JPanel> panels = new HashSet<JPanel>();
+	private Set<JPanel> panels = new HashSet<>();
 	
 	private JFrame frmMywallet;
 	//Login
@@ -53,7 +55,7 @@ public class MyWalletApp {
 	private JTextField textNomeAzienda;
 	private JTextField textPartitaIVA;
 	private JPasswordField passAzienda;
-	private JButton submitRegisterAzienda;
+	private JButton submitRegAzienda;
 	//RegFormPrivato
 	private JPanel regFormPrivato;
 	private JTextField textNomePrivato;
@@ -61,7 +63,7 @@ public class MyWalletApp {
 	private JTextField textCodFiscale;
 	private JTextField textDataNascita;
 	private JPasswordField passPrivato;
-	private JButton submitRegisterPrivato;
+	private JButton submitRegPriv;
 	//TransactionForm
 	private JPanel transazionePanel;
 	private JTextField receiverText;
@@ -118,8 +120,10 @@ public class MyWalletApp {
 	/**
 	 * Clears all the input data from the previous session
 	 */
-	private void clearOldData() {
-		updateManager.stop();
+	public void clearOldData() {
+		if(updateManager != null) {
+			updateManager.stop();
+		}
 		updateManager = null;
 		//Login
 		usernameField.setText(null);
@@ -155,7 +159,7 @@ public class MyWalletApp {
 		 */
 		btnHome.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				hideAllExcept(sideBoard,homePanel);
+				hideAllExcept(sideBoard, homePanel);
 			}
 		});
 		
@@ -229,7 +233,7 @@ public class MyWalletApp {
 		});
 		
 
-		submitRegisterAzienda.addActionListener(new ActionListener() {
+		submitRegAzienda.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				hideAllExcept(sideBoard,homePanel);
 				int idAzienda = db.aggiungiAzienda(textNomeAzienda.getText(), textPartitaIVA.getText());
@@ -239,7 +243,7 @@ public class MyWalletApp {
 		});
 		
 
-		submitRegisterPrivato.addActionListener(new ActionListener() {
+		submitRegPriv.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				hideAllExcept(sideBoard,homePanel);
 				try {
@@ -264,15 +268,22 @@ public class MyWalletApp {
 		sendBtn.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 
-				Utente sender = updateManager.getUtente();
 				double amount = Double.valueOf(amountText.getText().replace(",", "."));
 				
 				if(amount <= 0) {
 				    JOptionPane.showMessageDialog(frmMywallet, "La somma da inviare deve essere maggiore di 0.00 €", "Transaction error",JOptionPane.ERROR_MESSAGE);
-				    return;
-				}
+				} else {
 
-				if(!lendingCheckBox.isSelected()) {
+				Utente sender = updateManager.getUtente();
+				if(lendingCheckBox.isSelected()) {
+					//Si tratta di un prestito quindi no cashback
+					if(sender.inviaPagamento(amount)) {
+						db.aggiungiPrestito(Integer.valueOf(receiverText.getText()), amount, new java.sql.Date(Calendar.getInstance().getTime().getTime()));
+						db.aggiungiPrestito(sender.getId(), -amount, new java.sql.Date(Calendar.getInstance().getTime().getTime()));
+					} else {
+					    JOptionPane.showMessageDialog(frmMywallet, "Saldo insufficiente!", "Transaction error",JOptionPane.ERROR_MESSAGE);
+					}
+				}else {
 					//Non si tratta di un prestito
 					if(!sender.inviaPagamento(amount)) {
 						//Invia un pagamento detraendo il 3% di cashback
@@ -280,17 +291,9 @@ public class MyWalletApp {
 					    return;
 					}
 					db.aggiungiPagamento(Integer.valueOf(receiverText.getText()), amount, new java.sql.Date(Calendar.getInstance().getTime().getTime()));
-					db.aggiungiPagamento(sender.getId(), -amount + (amount * 0.03), new java.sql.Date(Calendar.getInstance().getTime().getTime()));
-					
-				}else {
-					//Si tratta di un prestito quindi no cashback
-					if(!sender.inviaPagamento(amount)) {
-					    JOptionPane.showMessageDialog(frmMywallet, "Saldo insufficiente!", "Transaction error",JOptionPane.ERROR_MESSAGE);
-					    return;
-					}
-					db.aggiungiPrestito(Integer.valueOf(receiverText.getText()), amount, new java.sql.Date(Calendar.getInstance().getTime().getTime()));
-					db.aggiungiPrestito(sender.getId(), -amount, new java.sql.Date(Calendar.getInstance().getTime().getTime()));
+					db.aggiungiPagamento(sender.getId(), -amount + amount * 0.03, new java.sql.Date(Calendar.getInstance().getTime().getTime()));
 				}
+			    }
 			}
 		});
 		
@@ -298,17 +301,16 @@ public class MyWalletApp {
 		btnRisparmio.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				double amount = Double.valueOf(risparmioText.getText().replace(",", "."));
+				
 				if(amount <= 0) {
 				    JOptionPane.showMessageDialog(frmMywallet, "La somma da inviare deve essere maggiore di 0.00 €", "Transaction error",JOptionPane.ERROR_MESSAGE);
-				    return;
-				}
-				
+				} else {
+					
 				Utente sender = updateManager.getUtente();
 				if(!sender.inviaRisparmio(amount)) {
 				    JOptionPane.showMessageDialog(frmMywallet, "Saldo insufficiente!", "Transaction error",JOptionPane.ERROR_MESSAGE);
-				    return;
+					}
 				}
-				
 			}
 		});
 		
@@ -418,6 +420,8 @@ public class MyWalletApp {
 		transactionTable.setRowSelectionAllowed(false);
 		transactionTable.getTableHeader().setReorderingAllowed(false);
 		transactionTable.setModel(new DefaultTableModel() {
+			private static final long serialVersionUID = 7415589682770089601L;
+
 			//Non-Editable Jtable
 			@Override
 			   public boolean isCellEditable(int row, int column) {
@@ -559,9 +563,9 @@ public class MyWalletApp {
 		frmMywallet.getContentPane().add(regFormPrivato);
 		regFormPrivato.setLayout(null);
 		
-		submitRegisterPrivato = new JButton("Invia Registrazione");
-		submitRegisterPrivato.setBounds(332, 232, 177, 30);
-		regFormPrivato.add(submitRegisterPrivato);
+		submitRegPriv = new JButton("Invia Registrazione");
+		submitRegPriv.setBounds(332, 232, 177, 30);
+		regFormPrivato.add(submitRegPriv);
 		
 		textNomePrivato = new JTextField();
 		textNomePrivato.setBounds(386, 46, 123, 20);
@@ -630,9 +634,9 @@ public class MyWalletApp {
 		regFormAzienda.add(textPartitaIVA);
 		textPartitaIVA.setColumns(10);
 		
-		submitRegisterAzienda = new JButton("Invia Registrazione");
-		submitRegisterAzienda.setBounds(292, 309, 177, 30);
-		regFormAzienda.add(submitRegisterAzienda);
+		submitRegAzienda = new JButton("Invia Registrazione");
+		submitRegAzienda.setBounds(292, 309, 177, 30);
+		regFormAzienda.add(submitRegAzienda);
 		
 		JLabel labelNome = new JLabel("Nome Societ\u00E0:");
 		labelNome.setHorizontalAlignment(SwingConstants.CENTER);

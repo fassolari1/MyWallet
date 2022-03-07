@@ -21,9 +21,10 @@ import lombok.Getter;
  */
 public class UpdateManager implements Runnable {
 	
-	private final Vector<String> columnsIdentifier =  new Vector<String>();
+	private final Vector<String> columnsIdentifier =  new Vector<>();
 	private final ExecutorService exeService = Executors.newSingleThreadExecutor();
 	
+	@Getter
 	private boolean running = true;
 	
 	@Getter

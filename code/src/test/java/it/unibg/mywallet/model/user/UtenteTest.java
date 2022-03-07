@@ -2,24 +2,43 @@ package it.unibg.mywallet.model.user;
 
 import org.junit.Test;
 
-import it.unibg.mywallet.model.user.impl.Persona;
-
+import it.unibg.mywallet.database.DatabaseManager;
 import static org.junit.Assert.assertEquals;
+
+import org.junit.Before;
 
 public class UtenteTest {
 	
+	Utente user;
+	
+	@Before
+	public void init() {
+		user = DatabaseManager.getInstance().getPerson(0);
+	}
 	
 	@Test
 	public void testUtente() {
-		Utente person = new Persona(1,1000,100);
-		Utente emptyPerson = new Persona(2);
 
-		assertEquals(person.getId(), 1);
-		assertEquals(person.getBilancio(), 1000, 0);
-		assertEquals(person.getRisparmio(), 100, 0);
+		assertEquals(user.getId(), 0);
+		assertEquals(user.getBilancio(), 1000, 0);
+		assertEquals(user.getRisparmio(), 100, 0);
+	}
+	
+	@Test
+	public void testPagamento() {
+		int amount = 20;
+		double originalBalance = user.getBilancio();
 		
-		assertEquals(emptyPerson.getBilancio(), 0.0, 0);
-		assertEquals(emptyPerson.getRisparmio(), 0.0, 0);
+		user.inviaPagamento(amount);
+		
+		assertEquals(user.getBilancio(), originalBalance - (amount - (amount * 0.03 )), 0);
+	}
+	
+	@Test
+	public void testRisparmio() {
+		user.inviaRisparmio(50);
+		
+		assertEquals(user.getRisparmio(), 150, 0);
 	}
 
 }

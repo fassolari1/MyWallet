@@ -34,6 +34,7 @@ public class DatabaseManager {
 	private static DatabaseManager instance = new DatabaseManager("myWalletDB", "");
 	
 	//ATTRIBUTI 
+	@Getter
 	private Connection conn = null;
 	private String nomeDatabase;
 	private String databasePath;
@@ -46,7 +47,13 @@ public class DatabaseManager {
 			//connessione
 			//Guarda se il database esiste già, in quel caso si limita a creare una connessione, altrimenti crea anche le tabelle
 			File db = new File(this.databasePath + nomeDatabase+ ".db");
-			if(!db.exists()) {
+			if(db.exists()) {
+				Class.forName("org.sqlite.JDBC");
+				this.conn = DriverManager.getConnection("jdbc:sqlite:"+this.databasePath+this.nomeDatabase+".db");
+				System.out.println("conn" + this.conn);
+				System.out.println("Connessione al database avvenuta con successo...");
+				System.out.println("database già esistente");
+			}else {
 				Class.forName("org.sqlite.JDBC");
 				this.conn = DriverManager.getConnection("jdbc:sqlite:"+this.databasePath+this.nomeDatabase+".db");
 				//creazione tabelle
@@ -65,12 +72,6 @@ public class DatabaseManager {
 				stmt.execute(create_prestito);
 				stmt.execute(create_cashback);
 				stmt.execute(create_risparmio);
-			}else {
-				Class.forName("org.sqlite.JDBC");
-				this.conn = DriverManager.getConnection("jdbc:sqlite:"+this.databasePath+this.nomeDatabase+".db");
-				System.out.println("conn" + this.conn);
-				System.out.println("Connessione al database avvenuta con successo...");
-				System.out.println("database già esistente");
 			}
 		}catch(Exception e) {
 			System.err.println( e.getClass().getName() + ": " + e.getMessage() );
@@ -91,7 +92,7 @@ public class DatabaseManager {
 	public int aggiungiPersona(String nome, String cognome, String cod_fisc, java.util.Date date) { // da sostituire data con un oggetto di tipo Date
 		Statement stmt = null;
 		int new_id;
-		ArrayList<Integer> ids = new ArrayList<Integer>();
+		ArrayList<Integer> ids = new ArrayList<>();
 		try(PreparedStatement insertPerson = conn.prepareStatement("INSERT INTO PERSONA(ID, nome, cognome, codice_fiscale, data_nascita, bilancio) VALUES(?,?,?,?,?,?)")) {
 			stmt = this.conn.createStatement();
 			ResultSet rs_azienda = stmt.executeQuery("SELECT ID FROM AZIENDA");
@@ -129,7 +130,7 @@ public class DatabaseManager {
 	 */
 	public int aggiungiAzienda(String ragione_sociale, String p_iva) {
 		int new_id;
-		ArrayList<Integer> ids = new ArrayList<Integer>();
+		ArrayList<Integer> ids = new ArrayList<>();
 		String sql_select_azienda = "SELECT ID FROM AZIENDA";
 		String sql_select_persona = "SELECT ID FROM PERSONA";
 		
@@ -185,7 +186,7 @@ public class DatabaseManager {
 		
 
 		int new_id;
-		ArrayList<Integer> ids = new ArrayList<Integer>();
+		ArrayList<Integer> ids = new ArrayList<>();
 		String sql_select_pagamento = "SELECT ID FROM PAGAMENTO";
 		String sql_select_prestito = "SELECT ID FROM PRESTITO";
 		String sql_update_bilancio = null;
@@ -231,7 +232,7 @@ public class DatabaseManager {
 	 */
 	public void aggiungiPrestito(int id, double amount, Date date) { //da sostituire poi "int id_utente" con "Utente u" // da sostituire data con un oggetto di tipo Date
 		int new_id;
-		ArrayList<Integer> ids = new ArrayList<Integer>();
+		ArrayList<Integer> ids = new ArrayList<>();
 		String sql_select_pagamento = "SELECT ID FROM PAGAMENTO";
 		String sql_select_prestito = "SELECT ID FROM PRESTITO";
 		String sql_update_bilancio = null;
