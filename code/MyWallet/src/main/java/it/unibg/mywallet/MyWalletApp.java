@@ -1,8 +1,31 @@
 package it.unibg.mywallet;
 
 import java.awt.EventQueue;
+import java.awt.Font;
+import java.awt.Toolkit;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.HashSet;
+import java.util.Set;
 
+import javax.swing.ImageIcon;
+import javax.swing.JButton;
+import javax.swing.JCheckBox;
+import javax.swing.JFormattedTextField;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JPasswordField;
+import javax.swing.JScrollPane;
+import javax.swing.JTable;
+import javax.swing.JTextField;
+import javax.swing.SwingConstants;
+import javax.swing.table.DefaultTableModel;
+import javax.swing.text.MaskFormatter;
 
 import com.formdev.flatlaf.FlatDarkLaf;
 
@@ -11,31 +34,6 @@ import it.unibg.mywallet.database.DatabaseManager;
 import it.unibg.mywallet.model.user.Utente;
 import it.unibg.mywallet.updater.UpdateManager;
 import lombok.Getter;
-
-import javax.swing.JPanel;
-import javax.swing.JLabel;
-import javax.swing.ImageIcon;
-import javax.swing.JButton;
-import javax.swing.JPasswordField;
-import javax.swing.JTextField;
-import java.awt.Toolkit;
-import java.awt.event.ActionListener;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
-import java.util.HashSet;
-import java.util.Set;
-import java.awt.event.ActionEvent;
-import javax.swing.SwingConstants;
-import javax.swing.table.DefaultTableModel;
-import javax.swing.text.MaskFormatter;
-
-import java.awt.Font;
-import javax.swing.JFormattedTextField;
-import javax.swing.JOptionPane;
-import javax.swing.JTable;
-import javax.swing.JScrollPane;
-import javax.swing.JCheckBox;
 
 @Getter
 public class MyWalletApp {

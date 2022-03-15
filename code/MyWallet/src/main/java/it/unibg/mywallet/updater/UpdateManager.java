@@ -6,6 +6,7 @@ import java.util.concurrent.Executors;
 
 import javax.swing.JLabel;
 import javax.swing.table.DefaultTableModel;
+
 import it.unibg.mywallet.database.DatabaseManager;
 import it.unibg.mywallet.model.user.Utente;
 import it.unibg.mywallet.model.user.impl.Azienda;
